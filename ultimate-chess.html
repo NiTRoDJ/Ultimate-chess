@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Chess 4.0</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0e0e12;--surface:#16161e;--surface2:#1e1e2a;--border:#2a2a3a;
+  --light-sq:#c9b89a;--dark-sq:#6b4f3a;--light-sq-h:#e8d5b0;--dark-sq-h:#8a6650;
+  --selected:#f0c040;--move-dot:rgba(240,192,64,.55);--capture:rgba(220,60,60,.55);
+  --check:#e03030;--text:#e8e0d0;--muted:#7a7090;--gold:#c8a050;--gold2:#f0d080;
+}
+body.water{--light-sq:#7bafc4;--dark-sq:#2a6080;--light-sq-h:#9dd0e8;--dark-sq-h:#3a80a8;
+  --gold:#40c8e0;--gold2:#80eeff;--bg:#060e14;--surface:#0a1520;--surface2:#102030;--border:#1a3a50;}
+body.lava{--light-sq:#c47a3a;--dark-sq:#7a2a10;--light-sq-h:#d89050;--dark-sq-h:#a03a18;
+  --gold:#ff6a00;--gold2:#ffb347;--bg:#120604;--surface:#1e0a04;--surface2:#2a1008;--border:#4a1a08;}
+body.bomb{--light-sq:#a8b8a0;--dark-sq:#4a5a42;--light-sq-h:#c0d0b8;--dark-sq-h:#627055;
+  --gold:#50e060;--gold2:#aaff88;--bg:#060e04;--surface:#0c160a;--surface2:#142010;--border:#2a402a;}
+body.bomb #board{box-shadow:0 0 40px rgba(80,224,96,.2);}
+body.bomb #element-badge{background:rgba(80,224,96,.12);border-color:#50e060;color:#aaff88;}
+/* Bomb timer bar */
+#bomb-timer-wrap{width:min(480px,90vw);margin-top:8px;display:none;}
+body.bomb #bomb-timer-wrap{display:block;}
+#bomb-timer-bar{height:10px;border-radius:5px;background:linear-gradient(90deg,#50e060,#aaff88);
+  transition:width .3s,background .3s;width:100%;}
+#bomb-timer-bar.warn{background:linear-gradient(90deg,#e0a020,#ffcc44);}
+#bomb-timer-bar.danger{background:linear-gradient(90deg,#e03020,#ff6644);animation:bomb-pulse .5s infinite alternate;}
+@keyframes bomb-pulse{from{opacity:1;}to{opacity:.5;}}
+#bomb-timer-label{font-size:.7rem;color:var(--muted);text-align:center;margin-top:3px;letter-spacing:.05em;}
+/* Respawn flash */
+@keyframes respawn-flash{0%{background:rgba(80,224,96,.8);}100%{background:transparent;}}
+.sq.respawning{animation:respawn-flash .6s ease-out;}
+/* Crystal display */
+#crystal-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:8px 14px;font-size:.85rem;display:none;justify-content:space-between;align-items:center;}
+body.bomb #crystal-box{display:flex;}
+.crystal-count{font-family:'Cinzel',serif;color:#aaff88;font-size:1rem;}
+/* Kill score */
+.kill-score{font-size:.72rem;color:var(--muted);margin-top:4px;}
+/* Returning queue indicator */
+.sq.has-queue::before{content:'⏳';position:absolute;top:1px;right:2px;font-size:.55rem;z-index:4;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;padding:20px 12px 40px;transition:background .4s;}
+header{text-align:center;margin-bottom:18px;}
+header h1{font-family:'Cinzel',serif;font-size:clamp(1.6rem,4vw,2.6rem);font-weight:700;
+  background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 50%,var(--gold) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.05em;}
+header p{font-size:.78rem;color:var(--muted);letter-spacing:.12em;margin-top:4px;text-transform:uppercase;}
+#element-badge{display:inline-block;font-size:.7rem;padding:2px 10px;border-radius:20px;margin-top:6px;
+  letter-spacing:.08em;background:rgba(200,160,80,.12);border:1px solid var(--gold);color:var(--gold2);transition:all .4s;}
+body.water #element-badge{background:rgba(64,200,224,.12);border-color:#40c8e0;color:#80eeff;}
+body.lava #element-badge{background:rgba(255,106,0,.15);border-color:#ff6a00;color:#ffb347;}
+.game-wrap{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%;max-width:960px;}
+.board-wrap{position:relative;}
+#board{display:grid;grid-template-columns:repeat(8,1fr);width:min(480px,90vw);height:min(480px,90vw);
+  border:3px solid var(--gold);border-radius:4px;overflow:hidden;box-shadow:0 0 40px rgba(200,160,80,.15);transition:border-color .4s;}
+body.water #board{box-shadow:0 0 40px rgba(64,200,224,.2);}
+body.lava #board{box-shadow:0 0 40px rgba(255,106,0,.25);}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s;overflow:hidden;}
+.sq.light{background:var(--light-sq);}.sq.dark{background:var(--dark-sq);}
+.sq.light:hover{background:var(--light-sq-h);}.sq.dark:hover{background:var(--dark-sq-h);}
+.sq.selected{background:var(--selected)!important;}.sq.in-check{background:var(--check)!important;}
+.move-dot::after{content:'';position:absolute;width:30%;height:30%;border-radius:50%;background:var(--move-dot);pointer-events:none;}
+.capture-ring::after{content:'';position:absolute;inset:4px;border-radius:50%;border:5px solid var(--capture);pointer-events:none;}
+.piece{font-size:clamp(1.4rem,5vw,2.2rem);line-height:1;user-select:none;pointer-events:none;
+  filter:drop-shadow(0 1px 3px rgba(0,0,0,.6));position:relative;z-index:2;}
+/* Lava piece states */
+.piece.has-power{filter:drop-shadow(0 0 6px #ff6a00) drop-shadow(0 1px 3px rgba(0,0,0,.6));}
+.piece.damaged{filter:drop-shadow(0 0 5px #888) drop-shadow(0 1px 3px rgba(0,0,0,.6));opacity:.75;}
+/* Hazard overlays */
+.hazard{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1rem,3.5vw,1.6rem);z-index:1;pointer-events:none;border-radius:2px;}
+.hazard.lava-tile{background:rgba(255,80,0,.35);animation:lava-pulse 1s infinite alternate;}
+.hazard.magma-tile{background:rgba(180,40,0,.3);}
+.hazard.fire-tile{background:rgba(255,160,0,.25);animation:fire-flicker .5s infinite alternate;}
+@keyframes lava-pulse{from{background:rgba(255,80,0,.35);}to{background:rgba(255,140,0,.5);}}
+@keyframes fire-flicker{from{background:rgba(255,160,0,.2);}to{background:rgba(255,220,0,.4);}}
+/* hold ring */
+.hold-ring{position:absolute;inset:3px;border-radius:50%;border:3px solid var(--gold);
+  clip-path:inset(0 100% 0 0);transition:none;z-index:3;pointer-events:none;}
+.coord-file,.coord-rank{position:absolute;font-size:.55rem;font-weight:500;opacity:.6;pointer-events:none;}
+.coord-rank{top:2px;left:3px;}.coord-file{bottom:1px;right:3px;}
+/* Panel */
+.panel{display:flex;flex-direction:column;gap:12px;width:210px;}
+.player-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;transition:border-color .3s;}
+.player-box.active{border-color:var(--gold);}
+.player-box .label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;}
+.player-box .name{font-family:'Cinzel',serif;font-size:1rem;color:var(--gold2);}
+.player-box .captured{margin-top:6px;font-size:.85rem;min-height:20px;}
+#status-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;
+  font-size:.82rem;line-height:1.5;color:var(--text);min-height:48px;}
+#status-box.warn{border-color:#e08030;color:#f0a050;}
+#status-box.danger{border-color:var(--check);color:#ff8080;}
+#status-box.win{border-color:var(--gold);color:var(--gold2);}
+#status-box.lava-action{border-color:#ff6a00;color:#ffb347;}
+.moves-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;
+  overflow-y:auto;max-height:150px;}
+.moves-box .label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px;}
+#move-list{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:.78rem;color:var(--text);}
+#move-list .move-num{color:var(--muted);}
+/* Superpower legend */
+#power-legend{background:var(--surface);border:1px solid #ff6a00;border-radius:8px;padding:10px 14px;
+  font-size:.72rem;line-height:1.7;color:var(--text);display:none;}
+#power-legend.show{display:block;}
+#power-legend h4{color:#ffb347;font-family:'Cinzel',serif;margin-bottom:6px;font-size:.8rem;}
+.btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);
+  font-family:'Inter',sans-serif;font-size:.82rem;padding:9px 0;cursor:pointer;
+  transition:border-color .15s,background .15s;width:100%;}
+.btn:hover{border-color:var(--gold);background:#22222e;}
+.btn.primary{border-color:var(--gold);color:var(--gold2);}
+#thinking{display:none;font-size:.75rem;color:var(--muted);text-align:center;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+/* Modals */
+.modal-overlay{display:flex;position:fixed;inset:0;background:rgba(8,8,12,.92);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.hidden{display:none;}
+.modal-box{background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:32px 36px;
+  text-align:center;max-width:420px;width:92%;}
+.modal-box .chess-icon{font-size:2.8rem;margin-bottom:10px;display:block;}
+.modal-box h2{font-family:'Cinzel',serif;font-size:1.5rem;background:linear-gradient(135deg,var(--gold),var(--gold2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.modal-box .sub{font-size:.75rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px;}
+.modal-options{display:flex;flex-direction:column;gap:10px;}
+.modal-btn{background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);
+  font-family:'Inter',sans-serif;font-size:.95rem;padding:13px 18px;cursor:pointer;
+  transition:border-color .15s,background .15s,transform .1s;display:flex;align-items:center;gap:12px;text-align:left;width:100%;}
+.modal-btn:hover{border-color:var(--gold);background:#22222e;transform:translateY(-1px);}
+.modal-btn.water-btn:hover{border-color:#40c8e0;}
+.modal-btn.water-btn .m-title{color:#80eeff;}
+.modal-btn.lava-btn{border-color:#4a1a08;}
+.modal-btn.lava-btn:hover{border-color:#ff6a00;}
+.modal-btn.lava-btn .m-title{color:#ffb347;}
+.modal-btn .icon{font-size:1.7rem;flex-shrink:0;}
+.modal-btn .m-title{font-weight:500;color:var(--gold2);font-size:.9rem;}
+.modal-btn .m-desc{font-size:.71rem;color:var(--muted);margin-top:2px;}
+.back-btn{background:none;border:none;color:var(--muted);font-size:.78rem;cursor:pointer;
+  margin-top:14px;text-decoration:underline;font-family:'Inter',sans-serif;}
+.back-btn:hover{color:var(--text);}
+#promo-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:center;justify-content:center;}
+#promo-modal.show{display:flex;}
+.promo-box{background:var(--surface);border:2px solid var(--gold);border-radius:12px;padding:24px 32px;text-align:center;}
+.promo-box h3{font-family:'Cinzel',serif;color:var(--gold2);margin-bottom:16px;}
+.promo-options{display:flex;gap:16px;justify-content:center;}
+.promo-btn{font-size:2.2rem;cursor:pointer;padding:8px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);}
+.promo-btn:hover{border-color:var(--gold);}
+/* King damage mode */
+body.king-select-mode .sq:hover{outline:2px solid #ff6a00;outline-offset:-2px;}
+/* Bomb explosion */
+@keyframes bomb-explosion{0%{transform:scale(1);}20%{transform:scale(1.08);filter:brightness(3);}60%{transform:scale(.95);filter:brightness(.5);}100%{transform:scale(1);filter:none;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ultimate Chess</h1>
+  <p id="mode-label">Оберіть режим…</p>
+  <span id="element-badge">⚔ Стандартна стихія</span>
+</header>
+<div class="game-wrap">
+  <div class="board-wrap">
+    <div id="board"></div>
+    <div id="bomb-timer-wrap">
+      <div id="bomb-timer-bar"></div>
+      <div id="bomb-timer-label">💣 30 ходів до вибуху</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="player-box" id="box-black">
+      <div class="label">AI (Чорні)</div>
+      <div class="name">⚔ Magnus Bot</div>
+      <div class="captured" id="cap-black"></div>
+    </div>
+    <div id="status-box">Оберіть режим…</div>
+    <div id="thinking">Думаю…</div>
+    <div class="player-box active" id="box-white">
+      <div class="label">Ти (Білі)</div>
+      <div class="name">♔ Гравець</div>
+      <div class="captured" id="cap-white"></div>
+    </div>
+    <div class="moves-box"><div class="label">Партія</div><div id="move-list"></div></div>
+    <div id="power-legend">
+      <h4>🔥 Суперсили (тримай 2с)</h4>
+      ♙ Лава попереду<br>♘ Магма слідом<br>♗ Вогонь навколо<br>
+      ♖ → 4 пішаки з силою<br>♕ 3 подвійних ходи<br>♔ Пошкодити 4 фігури
+    </div>
+    <div id="crystal-box">
+      <div>💎 <span class="crystal-count" id="crystal-count">0</span> кристалів</div>
+      <div style="font-size:.72rem;color:var(--muted)">Вбивства: <span id="kills-w">0</span>⚪ / <span id="kills-b">0</span>⚫</div>
+    </div>
+    <button class="btn primary" onclick="resetGame()">Нова гра</button>
+    <button class="btn" onclick="undoMove()">↩ Відмінити хід</button>
+  </div>
+</div>
+
+<!-- Step 1: Mode -->
+<div id="mode-modal" class="modal-overlay">
+  <div class="modal-box">
+    <span class="chess-icon">♛</span><h2>Ultimate Chess</h2>
+    <p class="sub">Оберіть режим гри</p>
+    <div id="total-crystals-box" style="background:rgba(80,224,96,.08);border:1px solid #50e060;border-radius:10px;padding:10px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:.8rem;color:#aaff88;">💎 Всього зароблено</span>
+      <span id="total-crystals-display" style="font-family:'Cinzel',serif;font-size:1.2rem;color:#aaff88;">0</span>
+    </div>
+    <div class="modal-options">
+      <button class="modal-btn" onclick="chooseMode('ai')">
+        <span class="icon">🤖</span><div><div class="m-title">Проти AI</div><div class="m-desc">Magnus Bot · Середній рівень</div></div>
+      </button>
+      <button class="modal-btn" onclick="chooseMode('2p')">
+        <span class="icon">👥</span><div><div class="m-title">Два гравці</div><div class="m-desc">На одному пристрої</div></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2: Element -->
+<div id="element-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <span class="chess-icon">✨</span><h2>Стихія</h2>
+    <p class="sub">Оберіть правила гри</p>
+    <div class="modal-options">
+      <button class="modal-btn" onclick="chooseElement('standard')">
+        <span class="icon">⚔️</span><div><div class="m-title">Стандартна</div><div class="m-desc">Класичні шахові правила</div></div>
+      </button>
+      <button class="modal-btn water-btn" onclick="chooseElement('water')">
+        <span class="icon">💧</span><div><div class="m-title">Водяна</div><div class="m-desc">Унікальні ходи для кожної фігури</div></div>
+      </button>
+      <button class="modal-btn lava-btn" onclick="chooseElement('lava')">
+        <span class="icon">🔥</span><div><div class="m-title">Лава</div><div class="m-desc">Стандартні ходи + суперсили фігур</div></div>
+      </button>
+      <button class="modal-btn bomb-btn" onclick="chooseElement('bomb')" style="border-color:#2a402a;">
+        <span class="icon">💣</span><div><div class="m-title" style="color:#aaff88;">Гігантська бомба</div><div class="m-desc">Фігури воскресають · 30 ходів · Кристали</div></div>
+      </button>
+    </div>
+    <button class="back-btn" onclick="goBack()">← Назад</button>
+  </div>
+</div>
+
+<!-- Promo -->
+<div id="promo-modal">
+  <div class="promo-box">
+    <h3>Перетворення пішака</h3>
+    <div class="promo-options">
+      <div class="promo-btn" onclick="promote('Q')">♕</div>
+      <div class="promo-btn" onclick="promote('R')">♖</div>
+      <div class="promo-btn" onclick="promote('B')">♗</div>
+      <div class="promo-btn" onclick="promote('N')">♘</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ Symbols & values ══
+const WH={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
+const BL={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'};
+const VAL={P:100,N:320,B:330,R:500,Q:900,K:20000};
+
+// ══ PST ══
+const PAWN_TBL=[0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10,5,5,10,25,25,10,5,5,0,0,0,20,20,0,0,0,5,-5,-10,0,0,-10,-5,5,5,10,10,-20,-20,10,10,5,0,0,0,0,0,0,0,0];
+const KNIGHT_TBL=[-50,-40,-30,-30,-30,-30,-40,-50,-40,-20,0,0,0,0,-20,-40,-30,0,10,15,15,10,0,-30,-30,5,15,20,20,15,5,-30,-30,0,15,20,20,15,0,-30,-30,5,10,15,15,10,5,-30,-40,-20,0,5,5,0,-20,-40,-50,-40,-30,-30,-30,-30,-40,-50];
+const BISHOP_TBL=[-20,-10,-10,-10,-10,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,10,10,5,0,-10,-10,5,5,10,10,5,5,-10,-10,0,10,10,10,10,0,-10,-10,10,10,10,10,10,10,-10,-10,5,0,0,0,0,5,-10,-20,-10,-10,-10,-10,-10,-10,-20];
+const ROOK_TBL=[0,0,0,0,0,0,0,0,5,10,10,10,10,10,10,5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,0,0,0,5,5,0,0,0];
+const QUEEN_TBL=[-20,-10,-10,-5,-5,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,5,5,5,0,-10,-5,0,5,5,5,5,0,-5,0,0,5,5,5,5,0,-5,-10,5,5,5,5,5,0,-10,-10,0,5,0,0,0,0,-10,-20,-10,-10,-5,-5,-10,-10,-20];
+const KING_TBL=[-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-20,-30,-30,-40,-40,-30,-30,-20,-10,-20,-20,-20,-20,-20,-20,-10,20,20,0,0,0,0,20,20,20,30,10,0,0,10,30,20];
+function getPST(t){return{P:PAWN_TBL,N:KNIGHT_TBL,B:BISHOP_TBL,R:ROOK_TBL,Q:QUEEN_TBL,K:KING_TBL}[t];}
+
+// ══ State ══
+let board, turn, selected, legalMoves, history, gameOver;
+let castlingRights, enPassantSq;
+let capturedByWhite, capturedByBlack;
+let pendingPromo, pendingMode;
+let gameMode='ai', element='standard';
+
+// ══ Bomb state ══
+// movesLeft[color] = how many moves that player has left (30 each)
+// killsW, killsB = kill counts
+// crystals = player's crystals
+// respawnQueue = [{type, color, startSq, turnsLeft}] — waiting to respawn
+let movesLeft={w:30,b:30};
+let killsW=0, killsB=0, crystals=0;
+let respawnQueue=[];
+
+// ══ Lava state ══
+// hasPower[idx] = true/false (piece still has superpower)
+// damaged[idx] = true/false
+// hazards = [{sq, type:'lava'|'magma'|'fire', turnsLeft, owner}]
+// knightLastSq = {color, sq} — for knight magma
+// queenDoubleLeft = {color, count} — double moves remaining
+// queenSecondMove = false — waiting for second queen move
+// kingSelectMode = {color, count} — selecting 4 pieces to damage
+let hasPower={}, damaged={}, hazards=[];
+let knightLastSq={w:null,b:null};
+let queenDouble={w:0,b:0};
+let queenSecondMove=false;
+let kingSelectMode=null;
+let holdTimer=null, holdSq=null, holdRingEl=null;
+let totalMoves=0; // for fire spread
+
+// ══ Helpers ══
+function rc(s){return{r:Math.floor(s/8),c:s%8};}
+function sq(r,c){return r*8+c;}
+function inBounds(r,c){return r>=0&&r<8&&c>=0&&c<8;}
+const FILES=['a','b','c','d','e','f','g','h'];
+function sqName(idx){const{r,c}=rc(idx);return FILES[c]+(8-r);}
+
+function initBoard(){
+  const b=Array(64).fill(null);
+  const back=['R','N','B','Q','K','B','N','R'];
+  for(let f=0;f<8;f++){
+    b[f]={color:'b',type:back[f]};b[8+f]={color:'b',type:'P'};
+    b[48+f]={color:'w',type:'P'};b[56+f]={color:'w',type:back[f]};
+  }
+  return b;
+}
+
+// ══ Navigation ══
+function resetGame(){
+  document.getElementById('mode-modal').classList.remove('hidden');
+  document.getElementById('element-modal').classList.add('hidden');
+  updateTotalCrystalsDisplay();
+}
+function chooseMode(mode){
+  pendingMode=mode;
+  document.getElementById('mode-modal').classList.add('hidden');
+  document.getElementById('element-modal').classList.remove('hidden');
+}
+function goBack(){
+  document.getElementById('element-modal').classList.add('hidden');
+  document.getElementById('mode-modal').classList.remove('hidden');
+}
+function chooseElement(el){
+  element=el; gameMode=pendingMode;
+  document.getElementById('element-modal').classList.add('hidden');
+  document.body.classList.remove('water','lava','bomb');
+  if(el==='water') document.body.classList.add('water');
+  if(el==='lava')  document.body.classList.add('lava');
+  if(el==='bomb')  document.body.classList.add('bomb');
+
+  board=initBoard(); turn='w'; selected=null; legalMoves=[]; history=[];
+  gameOver=false; castlingRights={wK:true,wQ:true,bK:true,bQ:true};
+  enPassantSq=null; capturedByWhite=[]; capturedByBlack=[]; pendingPromo=null;
+  // Lava init
+  hasPower={}; damaged={}; hazards=[];
+  knightLastSq={w:null,b:null}; queenDouble={w:0,b:0};
+  queenSecondMove=false; kingSelectMode=null; totalMoves=0;
+  if(el==='lava'){
+    // Give all pieces superpowers
+    for(let i=0;i<64;i++) if(board[i]) hasPower[i]=true;
+  }
+
+  const isAI=gameMode==='ai';
+  // Bomb init
+  movesLeft={w:30,b:30}; killsW=0; killsB=0; crystals=0; respawnQueue=[];
+  updateBombUI();
+
+  const elNames={standard:'⚔ Стандартна',water:'💧 Водяна',lava:'🔥 Лава',bomb:'💣 Гігантська бомба'};
+  document.getElementById('mode-label').textContent=isAI?'Людина проти AI · Середній рівень':'Два гравці · На одному пристрої';
+  document.getElementById('element-badge').textContent=elNames[el];
+  document.querySelector('#box-black .label').textContent=isAI?'AI (Чорні)':'Гравець 2 (Чорні)';
+  document.querySelector('#box-black .name').textContent=isAI?'⚔ Magnus Bot':'♚ Гравець 2';
+  document.querySelector('#box-white .label').textContent=isAI?'Ти (Білі)':'Гравець 1 (Білі)';
+  document.querySelector('#box-white .name').textContent=isAI?'♔ Гравець':'♔ Гравець 1';
+  document.getElementById('power-legend').classList.toggle('show', el==='lava');
+  renderBoard(); setStatus('Твій хід. Грай білими.',''); updatePanels();
+  document.getElementById('move-list').innerHTML='';
+}
+
+// ══ MOVE GENERATION ══
+function rawMovesStandard(b,idx,cr,ep){
+  const p=b[idx]; if(!p) return [];
+  const{r,c}=rc(idx); const moves=[];
+  const push=(r2,c2,flags={})=>{if(inBounds(r2,c2))moves.push({from:idx,to:sq(r2,c2),...flags});};
+  if(p.type==='P'){
+    const dir=p.color==='w'?-1:1; const startRow=p.color==='w'?6:1;
+    if(inBounds(r+dir,c)&&!b[sq(r+dir,c)]){
+      push(r+dir,c);
+      if(r===startRow&&!b[sq(r+2*dir,c)])push(r+2*dir,c,{double:true});
+    }
+    for(const dc of[-1,1]){
+      if(!inBounds(r+dir,c+dc))continue;
+      const t=b[sq(r+dir,c+dc)];
+      if(t&&t.color!==p.color)push(r+dir,c+dc,{capture:true});
+      if(ep===sq(r+dir,c+dc))push(r+dir,c+dc,{enPassant:true});
+    }
+  }
+  if(p.type==='N'){
+    for(const[dr,dc]of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]){
+      if(!inBounds(r+dr,c+dc))continue; const t=b[sq(r+dr,c+dc)];
+      if(!t||t.color!==p.color)push(r+dr,c+dc);
+    }
+  }
+  const slides=dirs=>{for(const[dr,dc]of dirs){let rr=r+dr,cc=c+dc;while(inBounds(rr,cc)){const t=b[sq(rr,cc)];if(t){if(t.color!==p.color)push(rr,cc);break;}push(rr,cc);rr+=dr;cc+=dc;}}};
+  if(p.type==='B')slides([[-1,-1],[-1,1],[1,-1],[1,1]]);
+  if(p.type==='R')slides([[-1,0],[1,0],[0,-1],[0,1]]);
+  if(p.type==='Q')slides([[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]);
+  if(p.type==='K'){
+    for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+      if(!inBounds(r+dr,c+dc))continue; const t=b[sq(r+dr,c+dc)];
+      if(!t||t.color!==p.color)push(r+dr,c+dc);
+    }
+    if(p.color==='w'){if(cr.wK&&!b[61]&&!b[62])push(r,6,{castle:'K'});if(cr.wQ&&!b[59]&&!b[58]&&!b[57])push(r,2,{castle:'Q'});}
+    else{if(cr.bK&&!b[5]&&!b[6])push(r,6,{castle:'K'});if(cr.bQ&&!b[3]&&!b[2]&&!b[1])push(r,2,{castle:'Q'});}
+  }
+  return moves;
+}
+
+function rawMovesWater(b,idx,cr,ep){
+  const p=b[idx]; if(!p) return [];
+  const{r,c}=rc(idx); const moves=[];
+  const push=(r2,c2,flags={})=>{if(inBounds(r2,c2))moves.push({from:idx,to:sq(r2,c2),...flags});};
+  if(p.type==='P'){
+    const dir=p.color==='w'?-1:1;
+    if(inBounds(r+dir,c)&&!b[sq(r+dir,c)])push(r+dir,c);
+    for(const dc of[-1,1])if(inBounds(r+dir,c+dc)&&!b[sq(r+dir,c+dc)])push(r+dir,c+dc);
+    if(inBounds(r+dir,c)){const t=b[sq(r+dir,c)];if(t&&t.color!==p.color)push(r+dir,c,{capture:true});}
+  }
+  if(p.type==='N'){
+    const ring=[[-2,-2],[-2,-1],[-2,0],[-2,1],[-2,2],[-1,-2],[-1,2],[0,-2],[0,2],[1,-2],[1,2],[2,-2],[2,-1],[2,0],[2,1],[2,2]];
+    for(const[dr,dc]of ring){if(!inBounds(r+dr,c+dc))continue;const t=b[sq(r+dr,c+dc)];if(!t||t.color!==p.color)push(r+dr,c+dc);}
+  }
+  const slides=dirs=>{for(const[dr,dc]of dirs){let rr=r+dr,cc=c+dc;while(inBounds(rr,cc)){const t=b[sq(rr,cc)];if(t){if(t.color!==p.color)push(rr,cc);break;}push(rr,cc);rr+=dr;cc+=dc;}}};
+  if(p.type==='B')slides([[-1,-1],[-1,1],[1,-1],[1,1]]);
+  if(p.type==='R')slides([[-1,0],[1,0],[0,-1],[0,1]]);
+  if(p.type==='Q'){
+    slides([[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]);
+    const ring=[[-2,-2],[-2,-1],[-2,0],[-2,1],[-2,2],[-1,-2],[-1,2],[0,-2],[0,2],[1,-2],[1,2],[2,-2],[2,-1],[2,0],[2,1],[2,2]];
+    for(const[dr,dc]of ring){if(!inBounds(r+dr,c+dc))continue;const t=b[sq(r+dr,c+dc)];if(!t||t.color!==p.color)push(r+dr,c+dc);}
+  }
+  if(p.type==='K'){
+    for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+      const r1=r+dr,c1=c+dc; if(!inBounds(r1,c1))continue;
+      const t1=b[sq(r1,c1)]; if(t1){if(t1.color!==p.color)push(r1,c1);continue;}
+      push(r1,c1);
+      const r2=r+2*dr,c2=c+2*dc; if(!inBounds(r2,c2))continue;
+      const t2=b[sq(r2,c2)]; if(!t2||t2.color!==p.color)push(r2,c2);
+    }
+  }
+  return moves;
+}
+
+function rawMoves(b,idx,cr,ep){
+  return element==='water'?rawMovesWater(b,idx,cr,ep):rawMovesStandard(b,idx,cr,ep);
+}
+
+function applyMove(b,m,cr,ep){
+  const nb=b.slice(); const piece=nb[m.from];
+  nb[m.to]=piece; nb[m.from]=null;
+  const ncr={...cr}; let nep=null;
+  if(m.enPassant){const dir=piece.color==='w'?1:-1;nb[m.to+dir*8]=null;}
+  if(m.double)nep=Math.floor((m.from+m.to)/2);
+  if(m.castle){const r2=rc(m.to).r;if(m.castle==='K'){nb[sq(r2,5)]=nb[sq(r2,7)];nb[sq(r2,7)]=null;}else{nb[sq(r2,3)]=nb[sq(r2,0)];nb[sq(r2,0)]=null;}}
+  if(m.promo)nb[m.to]={color:piece.color,type:m.promo};
+  if(piece.type==='K'){if(piece.color==='w'){ncr.wK=false;ncr.wQ=false;}else{ncr.bK=false;ncr.bQ=false;}}
+  if(piece.type==='R'){if(m.from===56)ncr.wQ=false;if(m.from===63)ncr.wK=false;if(m.from===0)ncr.bQ=false;if(m.from===7)ncr.bK=false;}
+  return{nb,ncr,nep};
+}
+
+function kingPos(b,color){for(let i=0;i<64;i++)if(b[i]&&b[i].color===color&&b[i].type==='K')return i;return -1;}
+function isAttacked(b,s,byColor,cr,ep){const hits=[];for(let i=0;i<64;i++)if(b[i]&&b[i].color===byColor)rawMoves(b,i,cr,ep).forEach(m=>hits.push(m.to));return hits.includes(s);}
+function legalMovesFor(b,idx,cr,ep,color){
+  return rawMoves(b,idx,cr,ep).filter(m=>{
+    if(m.castle){const r2=rc(m.from).r;const pass=m.castle==='K'?[sq(r2,4),sq(r2,5),sq(r2,6)]:[sq(r2,4),sq(r2,3),sq(r2,2)];const opp=color==='w'?'b':'w';if(pass.some(s=>isAttacked(b,s,opp,cr,ep)))return false;}
+    const{nb}=applyMove(b,m,cr,ep); const kp=kingPos(nb,color); const opp=color==='w'?'b':'w';
+    return !isAttacked(nb,kp,opp,cr,ep);
+  });
+}
+function allLegalMoves(b,color,cr,ep){const moves=[];for(let i=0;i<64;i++)if(b[i]&&b[i].color===color)legalMovesFor(b,i,cr,ep,color).forEach(m=>moves.push(m));return moves;}
+function inCheck(b,color,cr,ep){return isAttacked(b,kingPos(b,color),color==='w'?'b':'w',cr,ep);}
+
+// ══ Evaluation ══
+function evaluate(b,color){
+  let score=0;
+  for(let i=0;i<64;i++){const p=b[i];if(!p)continue;const idx2=p.color==='w'?i:63-i;score+=(p.color===color?1:-1)*(VAL[p.type]+getPST(p.type)[idx2]);}
+  return score;
+}
+function minimax(b,depth,alpha,beta,maximizing,color,cr,ep){
+  const cur=maximizing?color:(color==='w'?'b':'w');
+  const moves=allLegalMoves(b,cur,cr,ep);
+  if(depth===0||moves.length===0){if(moves.length===0){if(inCheck(b,cur,cr,ep))return maximizing?-Infinity:Infinity;return 0;}return evaluate(b,color);}
+  moves.sort((a,bb2)=>(b[bb2.to]?VAL[b[bb2.to].type]:0)-(b[a.to]?VAL[b[a.to].type]:0));
+  if(maximizing){let best=-Infinity;for(const m of moves){const{nb,ncr,nep}=applyMove(b,m,cr,ep);best=Math.max(best,minimax(nb,depth-1,alpha,beta,false,color,ncr,nep));alpha=Math.max(alpha,best);if(beta<=alpha)break;}return best;}
+  else{let best=Infinity;for(const m of moves){const{nb,ncr,nep}=applyMove(b,m,cr,ep);best=Math.min(best,minimax(nb,depth-1,alpha,beta,true,color,ncr,nep));beta=Math.min(beta,best);if(beta<=alpha)break;}return best;}
+}
+function bestMove(b,color,cr,ep){
+  const moves=allLegalMoves(b,color,cr,ep); if(!moves.length)return null;
+
+  // ── Evaluate superpower actions first (lava mode only) ──
+  let bestPowerAction=null, bestPowerScore=-Infinity;
+
+  if(element==='lava'){
+    const opp=color==='w'?'b':'w';
+
+    for(let i=0;i<64;i++){
+      const p=b[i];
+      if(!p||p.color!==color||!hasPower[i]) continue;
+      if(!canUsePowerOn(b,i,color)) continue;
+
+      const scoreBefore=evaluate(b,color);
+      let scoreAfter=scoreBefore;
+      let desc=null;
+
+      // Simulate superpower effect on a board copy
+      const nb=b.slice();
+
+      if(p.type==='P'){
+        const{r,c}=rc(i); const dir=color==='w'?-1:1; const tr=r+2*dir;
+        if(inBounds(tr,c)){
+          const ts=sq(tr,c);
+          const gain=nb[ts]&&nb[ts].color===opp?VAL[nb[ts].type]:0;
+          // Lava also threatens future moves: bonus per enemy piece in that column
+          let threat=0;
+          for(let rr=0;rr<8;rr++){const s2=sq(rr,c);if(nb[s2]&&nb[s2].color===opp)threat+=20;}
+          scoreAfter=scoreBefore+gain+threat+50;
+          desc={type:'P',idx:i};
+        }
+      }
+
+      if(p.type==='N'){
+        // Magma on current sq after next move — valuable if enemies pass through there
+        const{r,c}=rc(i); let threat=0;
+        for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+          const nr=r+dr,nc=c+dc;
+          if(inBounds(nr,nc)&&nb[sq(nr,nc)]&&nb[sq(nr,nc)].color===opp) threat+=30;
+        }
+        scoreAfter=scoreBefore+threat+40;
+        desc={type:'N',idx:i};
+      }
+
+      if(p.type==='B'){
+        // Fire around bishop — count enemies killed/damaged
+        const{r,c}=rc(i); let gain=0;
+        for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+          const nr=r+dr,nc=c+dc;
+          if(inBounds(nr,nc)&&nb[sq(nr,nc)]&&nb[sq(nr,nc)].color===opp)
+            gain+=VAL[nb[sq(nr,nc)].type]*0.5; // fire → damage not instant kill
+        }
+        scoreAfter=scoreBefore+gain+30;
+        desc={type:'B',idx:i};
+      }
+
+      if(p.type==='R'){
+        // Rook → 4 pawns. Worth it only if rook is threatened or pawns can advance well
+        const{r,c}=rc(i);
+        let freeCells=0;
+        for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
+          const nr=r+dr,nc=c+dc;
+          if(inBounds(nr,nc)&&!nb[sq(nr,nc)]) freeCells++;
+        }
+        const rookThreatened=isAttacked(b,i,opp,cr,ep);
+        // Use if rook is threatened AND we get ≥2 pawns, or we have many pieces already
+        if(rookThreatened&&freeCells>=2){
+          scoreAfter=scoreBefore+freeCells*80-VAL['R']+VAL['P']*freeCells;
+          desc={type:'R',idx:i};
+        }
+      }
+
+      if(p.type==='Q'){
+        // Double moves — always strong if queen is active
+        const qMoves=legalMovesFor(b,i,cr,ep,color);
+        if(qMoves.length>0){
+          scoreAfter=scoreBefore+200; // high bonus — double queen move is very powerful
+          desc={type:'Q',idx:i};
+        }
+      }
+
+      if(p.type==='K'){
+        // King power — damage 4 enemy pieces. Very valuable.
+        let gain=0;
+        for(let j=0;j<64;j++){
+          if(nb[j]&&nb[j].color===opp&&nb[j].type!=='K'){
+            gain+=VAL[nb[j].type]*0.3; // damage reduces value
+          }
+        }
+        // only use if we can damage ≥2 non-pawn pieces
+        const valuableTargets=[...Array(64).keys()].filter(j=>nb[j]&&nb[j].color===opp&&nb[j].type!=='K'&&nb[j].type!=='P');
+        if(valuableTargets.length>=2){
+          scoreAfter=scoreBefore+gain+150;
+          desc={type:'K',idx:i};
+        }
+      }
+
+      if(desc&&scoreAfter>scoreBefore+60&&scoreAfter>bestPowerScore){
+        bestPowerScore=scoreAfter;
+        bestPowerAction=desc;
+      }
+    }
+  }
+
+  // ── Regular move evaluation ──
+  let best=null, bestScore=-Infinity;
+  for(const m of moves){
+    const{nb,ncr,nep}=applyMove(b,m,cr,ep);
+    const score=minimax(nb,2,-Infinity,Infinity,false,color,ncr,nep);
+    if(score>bestScore){bestScore=score;best=m;}
+  }
+
+  // ── Decide: superpower or regular move? ──
+  // Use superpower if its score beats best regular move by margin
+  if(bestPowerAction&&bestPowerScore>bestScore+50){
+    return{superpower:bestPowerAction};
+  }
+  return best;
+}
+
+// canUsePower on arbitrary board (for AI simulation)
+function canUsePowerOn(b,idx,color){
+  const p=b[idx]; if(!p) return false;
+  const{r,c}=rc(idx);
+  if(p.type==='P'){
+    const dir=color==='w'?-1:1; const tr=r+2*dir;
+    if(!inBounds(tr,c)) return false;
+    const ts=sq(tr,c);
+    if(b[ts]&&b[ts].color===color) return false;
+    return true;
+  }
+  if(p.type==='R'){
+    for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
+      const nr=r+dr,nc=c+dc;
+      if(inBounds(nr,nc)&&!b[sq(nr,nc)]) return true;
+    }
+    return false;
+  }
+  return true;
+}
+
+// ══ LAVA SUPERPOWER LOGIC ══
+
+// Transfer hasPower/damaged when piece moves
+function transferPowerState(fromIdx, toIdx){
+  if(hasPower[fromIdx]){hasPower[toIdx]=true;delete hasPower[fromIdx];}
+  if(damaged[fromIdx]){damaged[toIdx]=true;delete damaged[fromIdx];}
+}
+
+// Apply damage to a piece at idx (next turn it transforms)
+function applyDamage(idx){
+  if(!board[idx]) return;
+  if(board[idx].type==='K') return; // king immune
+  damaged[idx]=true;
+}
+
+// Process pending damage at end of turn
+function processDamage(color){
+  // Damage applies to opponent's pieces that are on hazards or were flagged
+  // Actually damage is applied immediately when stepping on hazard
+  // Here we resolve "damaged" flag → transformation
+  const opp=color==='w'?'b':'w';
+  for(let i=0;i<64;i++){
+    if(board[i]&&board[i].color===opp&&damaged[i]){
+      transformDamagedPiece(i);
+      delete damaged[i];
+    }
+  }
+}
+
+function transformDamagedPiece(idx){
+  const p=board[idx];
+  if(!p||p.type==='K') return;
+  // P→die, N→P, B→P+power, R→N, Q→N+power, K→immune
+  const newHp=hasPower[idx];
+  delete hasPower[idx];
+  if(p.type==='P'){board[idx]=null;return;}
+  if(p.type==='N'){board[idx]={color:p.color,type:'P'};return;}
+  if(p.type==='B'){board[idx]={color:p.color,type:'P'};hasPower[idx]=true;return;}
+  if(p.type==='R'){board[idx]={color:p.color,type:'N'};return;}
+  if(p.type==='Q'){board[idx]={color:p.color,type:'N'};hasPower[idx]=true;return;}
+}
+
+// Add hazard at sq
+function addHazard(s,type,owner){
+  // Remove existing hazard of same type
+  hazards=hazards.filter(h=>!(h.sq===s&&h.type===type));
+  const turnsLeft=type==='lava'?3:(type==='fire'?Infinity:Infinity);
+  hazards.push({sq:s,type,owner,turnsLeft,born:totalMoves});
+}
+
+// Check if piece lands on hazard
+function checkHazardLanding(idx, color){
+  if(element!=='lava') return;
+  const opp=color==='w'?'b':'w';
+  const h=hazards.find(h=>h.sq===idx&&h.owner===opp);
+  if(!h) return;
+  if(board[idx]&&board[idx].color===color){
+    if(h.type==='lava'){
+      // instant kill
+      board[idx]=null; delete hasPower[idx]; delete damaged[idx];
+    } else {
+      // magma or fire → damage
+      applyDamage(idx);
+    }
+  }
+}
+
+// Tick hazards after a full round (both players moved)
+function tickHazards(){
+  if(element!=='lava') return;
+  // Lava: count down by turns
+  hazards=hazards.map(h=>{
+    if(h.type==='lava'){return {...h,turnsLeft:h.turnsLeft-1};}
+    return h;
+  }).filter(h=>h.turnsLeft>0);
+
+  // Fire spread: every 3 total moves, 5% per direction
+  if(totalMoves%3===0){
+    const newFires=[];
+    for(const h of hazards){
+      if(h.type!=='fire') continue;
+      for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+        if(Math.random()<0.05){
+          const{r,c}=rc(h.sq);
+          const nr=r+dr,nc=c+dc;
+          if(inBounds(nr,nc)){
+            const ns=sq(nr,nc);
+            if(!hazards.find(hh=>hh.sq===ns&&hh.type==='fire'))
+              newFires.push({sq:ns,type:'fire',owner:h.owner,turnsLeft:Infinity,born:totalMoves});
+          }
+        }
+      }
+    }
+    hazards.push(...newFires);
+  }
+
+  // Check if any piece is sitting on a hazard they shouldn't be
+  for(let i=0;i<64;i++){
+    if(!board[i]) continue;
+    const pc=board[i];
+    const h=hazards.find(h=>h.sq===i&&h.owner!==pc.color);
+    if(h){
+      if(h.type==='lava'){board[i]=null;delete hasPower[i];delete damaged[i];}
+      else applyDamage(i);
+    }
+  }
+}
+
+// ══ Superpower validity check ══
+function canUsePower(idx){
+  const p=board[idx]; if(!p) return false;
+  const{r,c}=rc(idx);
+  const color=p.color;
+  const opp=color==='w'?'b':'w';
+
+  if(p.type==='P'){
+    // Need at least 2 free squares ahead (not out of bounds, not blocked)
+    const dir=color==='w'?-1:1;
+    const tr=r+2*dir;
+    if(!inBounds(tr,c)) return false;       // wall 1 or 2 steps ahead
+    // cell directly ahead must also be in bounds (already covered by tr check if dir=-1)
+    const ts=sq(tr,c);
+    // If occupied by OWN piece — can't place lava there (but enemy is ok, we kill them)
+    if(board[ts]&&board[ts].color===color) return false;
+    return true;
+  }
+
+  if(p.type==='R'){
+    // Need at least 1 free adjacent cell (↑↓←→) to place a pawn
+    for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
+      const nr=r+dr, nc=c+dc;
+      if(inBounds(nr,nc)&&!board[sq(nr,nc)]) return true;
+    }
+    return false; // all 4 directions blocked or out of bounds
+  }
+
+  // All other pieces always valid
+  return true;
+}
+
+// ══ Superpower activation ══
+function activateSuperpower(idx){
+  if(!hasPower[idx]) return;
+  const p=board[idx];
+  if(!p||p.color!==turn) return;
+
+  if(!canUsePower(idx)){
+    setStatus('⛔ Суперсила недоступна з цієї позиції!','warn');
+    return;
+  }
+
+  delete hasPower[idx]; // use it
+
+  if(p.type==='P') activatePawnPower(idx,p.color);
+  else if(p.type==='N') activateKnightPower(idx,p.color);
+  else if(p.type==='B') activateBishopPower(idx,p.color);
+  else if(p.type==='R') activateRookPower(idx,p.color);
+  else if(p.type==='Q') activateQueenPower(idx,p.color);
+  else if(p.type==='K') activateKingPower(idx,p.color);
+
+  setStatus('🔥 Суперсила активована!','lava-action');
+  renderBoard();
+}
+
+function activatePawnPower(idx,color){
+  const{r,c}=rc(idx);
+  const dir=color==='w'?-1:1;
+  // Lava 2 squares ahead
+  const tr=r+2*dir;
+  if(inBounds(tr,c)){
+    const ts=sq(tr,c);
+    // Kill enemy piece there instantly
+    if(board[ts]&&board[ts].color!==color){board[ts]=null;delete hasPower[ts];delete damaged[ts];}
+    addHazard(ts,'lava',color);
+  }
+}
+
+function activateKnightPower(idx,color){
+  // Magma will be placed where knight was on NEXT move
+  knightLastSq[color]=idx;
+  setStatus('🔥 Магму буде поставлено після наступного ходу коня!','lava-action');
+}
+
+function activateBishopPower(idx,color){
+  const{r,c}=rc(idx);
+  for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+    const nr=r+dr,nc=c+dc;
+    if(!inBounds(nr,nc)) continue;
+    const ns=sq(nr,nc);
+    if(board[ns]&&board[ns].color!==color){board[ns]=null;delete hasPower[ns];delete damaged[ns];}
+    addHazard(ns,'fire',color);
+  }
+}
+
+function activateRookPower(idx,color){
+  const{r,c}=rc(idx);
+  board[idx]=null; delete hasPower[idx]; delete damaged[idx];
+  // Place 4 pawns with superpower
+  for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
+    const nr=r+dr,nc=c+dc;
+    if(!inBounds(nr,nc)) continue;
+    const ns=sq(nr,nc);
+    if(board[ns]) continue; // can't place on occupied
+    board[ns]={color,type:'P'};
+    hasPower[ns]=true;
+  }
+}
+
+function activateQueenPower(idx,color){
+  queenDouble[color]=3;
+  setStatus('♕ Наступні 3 ходи — подвійні для ферзя!','lava-action');
+}
+
+function activateKingPower(idx,color){
+  kingSelectMode={color,count:4,selected:[]};
+  document.body.classList.add('king-select-mode');
+  setStatus('👑 Клікни на 4 фігури суперника щоб пошкодити','lava-action');
+}
+
+// ══ BOMB ELEMENT LOGIC ══
+
+// Starting squares for each piece type (index → {color, type})
+const START_SQUARES = (() => {
+  const tmp = initBoard();
+  const map = {};
+  for(let i=0;i<64;i++) if(tmp[i]) map[i]={color:tmp[i].color,type:tmp[i].type};
+  return map;
+})();
+
+function updateBombUI(){
+  if(element!=='bomb') return;
+  const wLeft=movesLeft.w, bLeft=movesLeft.b;
+  const minLeft=Math.min(wLeft,bLeft);
+  const pct=(minLeft/30)*100;
+  const bar=document.getElementById('bomb-timer-bar');
+  const label=document.getElementById('bomb-timer-label');
+  bar.style.width=pct+'%';
+  bar.className=minLeft<=5?'danger':minLeft<=10?'warn':'';
+  label.textContent=`💣 ${wLeft}⚪ / ${bLeft}⚫ ходів до вибуху`;
+  document.getElementById('crystal-count').textContent=crystals;
+  document.getElementById('kills-w').textContent=killsW;
+  document.getElementById('kills-b').textContent=killsB;
+}
+
+function bombOnCapture(capturedPiece, capturedSq, killerColor){
+  if(element!=='bomb') return;
+  // Give crystal to human if they killed AI piece
+  if(gameMode==='ai' && killerColor==='w'){
+    crystals++;
+  }
+  // Track kills
+  if(killerColor==='w') killsW++;
+  else killsB++;
+
+  // Schedule respawn — find this piece's home squares
+  const homes=[];
+  for(const[sqIdx,info] of Object.entries(START_SQUARES)){
+    if(info.color===capturedPiece.color && info.type===capturedPiece.type)
+      homes.push(parseInt(sqIdx));
+  }
+  if(homes.length>0){
+    respawnQueue.push({type:capturedPiece.type, color:capturedPiece.color, homes, added:totalMoves});
+  }
+}
+
+function processRespawns(){
+  if(element!=='bomb'||!respawnQueue.length) return;
+  const stillWaiting=[];
+  for(const entry of respawnQueue){
+    let placed=false;
+    for(const homeSq of entry.homes){
+      if(!board[homeSq]){
+        board[homeSq]={color:entry.color,type:entry.type};
+        // Flash the square
+        setTimeout(()=>{
+          const el=document.querySelector(`[data-idx="${homeSq}"]`);
+          if(el){el.classList.add('respawning');setTimeout(()=>el.classList.remove('respawning'),600);}
+        },50);
+        placed=true; break;
+      }
+    }
+    if(!placed) stillWaiting.push(entry);
+  }
+  respawnQueue=stillWaiting;
+}
+
+function checkBombExplosion(){
+  if(element!=='bomb') return false;
+  if(movesLeft.w<=0 && movesLeft.b<=0){
+    // Save earned crystals to total
+    if(crystals>0) addCrystalsToTotal(crystals);
+    const wWins=killsW>killsB, tie=killsW===killsB;
+    let msg;
+    if(tie) msg=`💥 БОООМ! Нічия! Обидва вбили по ${killsW} фігур!`;
+    else if(wWins) msg=`💥 БОООМ! ${gameMode==='ai'?'Ти переміг':'Гравець 1 переміг'}! (${killsW} vs ${killsB} вбивств)`;
+    else msg=`💥 БОООМ! ${gameMode==='ai'?'AI переміг':'Гравець 2 переміг'}! (${killsB} vs ${killsW} вбивств)`;
+    if(crystals>0) msg+=` 💎+${crystals} збережено!`;
+    setStatus(msg,'win');
+    document.getElementById('board').style.animation='bomb-explosion .6s ease-out';
+    gameOver=true;
+    return true;
+  }
+  return false;
+}
+
+// ══ Rendering ══
+function renderBoard(){
+  const el=document.getElementById('board');
+  el.innerHTML='';
+  const lm=new Set(legalMoves.map(m=>m.to));
+  const capSqs=new Set(legalMoves.filter(m=>board[m.to]||m.enPassant).map(m=>m.to));
+
+  for(let i=0;i<64;i++){
+    const{r,c}=rc(i);
+    const div=document.createElement('div');
+    div.className='sq '+((r+c)%2===0?'light':'dark');
+    if(c===0){const s=document.createElement('span');s.className='coord-rank';s.textContent=8-r;div.appendChild(s);}
+    if(r===7){const s=document.createElement('span');s.className='coord-file';s.textContent=FILES[c];div.appendChild(s);}
+    if(i===selected)div.classList.add('selected');
+    if(lm.has(i))div.classList.add(capSqs.has(i)?'capture-ring':'move-dot');
+    if(board[i]&&board[i].type==='K'&&board[i].color===turn&&inCheck(board,turn,castlingRights,enPassantSq))div.classList.add('in-check');
+
+    // Hazard overlay
+    const h=hazards.find(h=>h.sq===i);
+    if(h){
+      const hd=document.createElement('div');
+      hd.className='hazard '+h.type+'-tile';
+      hd.textContent=h.type==='lava'?'🌋':h.type==='magma'?'🪨':'🔥';
+      if(h.type==='lava')hd.title=`Лава (зникне через ${h.turnsLeft} ходи)`;
+      div.appendChild(hd);
+    }
+
+    if(board[i]){
+      const span=document.createElement('span');
+      span.className='piece';
+      span.textContent=board[i].color==='w'?WH[board[i].type]:BL[board[i].type];
+      if(element==='lava'){
+        if(hasPower[i])span.classList.add('has-power');
+        if(damaged[i])span.classList.add('damaged');
+      }
+      div.appendChild(span);
+    }
+
+    div.addEventListener('click',()=>onSquareClick(i));
+    if(element==='lava'&&board[i]&&board[i].color===turn&&hasPower[i]){
+      const usable=canUsePower(i);
+      if(usable){
+        div.addEventListener('mousedown',()=>startHold(i,div));
+        div.addEventListener('mouseup',cancelHold);
+        div.addEventListener('mouseleave',cancelHold);
+        div.addEventListener('touchstart',()=>startHold(i,div),{passive:true});
+        div.addEventListener('touchend',cancelHold,{passive:true});
+      } else {
+        // Show dimmed orange — power exists but unusable from here
+        const span=div.querySelector('.piece');
+        if(span){span.classList.remove('has-power');span.style.opacity='.5';span.style.filter='drop-shadow(0 0 4px #a04000) drop-shadow(0 1px 3px rgba(0,0,0,.6))';}
+      }
+    }
+    el.appendChild(div);
+  }
+}
+
+// ══ Hold for superpower ══
+function startHold(idx,divEl){
+  cancelHold();
+  if(!hasPower[idx]||!board[idx]||board[idx].color!==turn) return;
+  if(!canUsePower(idx)){setStatus('⛔ Суперсила недоступна з цієї позиції!','warn');return;}
+  holdSq=idx;
+  // Draw ring
+  const ring=document.createElement('div');
+  ring.className='hold-ring'; divEl.appendChild(ring);
+  holdRingEl=ring;
+  let start=null;
+  function animFrame(ts){
+    if(!start)start=ts;
+    const pct=Math.min(100,(ts-start)/2000*100);
+    ring.style.clipPath=`inset(0 ${100-pct}% 0 0)`;
+    if(pct<100&&holdSq===idx)requestAnimationFrame(animFrame);
+    else if(pct>=100&&holdSq===idx){cancelHold();activateSuperpower(idx);}
+  }
+  requestAnimationFrame(animFrame);
+  holdTimer=true;
+}
+function cancelHold(){holdSq=null;holdTimer=null;if(holdRingEl){holdRingEl.remove();holdRingEl=null;}}
+
+// ══ Input ══
+function onSquareClick(idx){
+  if(gameOver||pendingPromo) return;
+
+  // King select mode
+  if(kingSelectMode&&kingSelectMode.color===turn){
+    const p=board[idx];
+    const opp=turn==='w'?'b':'w';
+    if(p&&p.color===opp&&p.type!=='K'){
+      applyDamage(idx);
+      kingSelectMode.count--;
+      setStatus(`👑 Обери ще ${kingSelectMode.count} фігури…`,'lava-action');
+      renderBoard();
+      if(kingSelectMode.count<=0){
+        kingSelectMode=null;
+        document.body.classList.remove('king-select-mode');
+        setStatus('Твій хід.','');
+      }
+    }
+    return;
+  }
+
+  if(gameMode==='ai'&&turn!=='w') return;
+
+  // Queen double move
+  if(element==='lava'&&queenSecondMove){
+    const p=board[idx]; const moveToHere=legalMoves.find(m=>m.to===idx);
+    if(moveToHere&&board[moveToHere.from]?.type==='Q'){executeMove(moveToHere,turn,true);return;}
+    if(p&&p.color===turn&&p.type==='Q'){selected=idx;legalMoves=legalMovesFor(board,idx,castlingRights,enPassantSq,turn);renderBoard();return;}
+    // clicked elsewhere — forfeit second move
+    queenSecondMove=false; selected=null; legalMoves=[];
+    endTurn(); return;
+  }
+
+  const moveToHere=legalMoves.find(m=>m.to===idx);
+  if(moveToHere){executeMove(moveToHere,turn);return;}
+
+  const piece=board[idx];
+  if(piece&&piece.color===turn){
+    selected=idx; legalMoves=legalMovesFor(board,idx,castlingRights,enPassantSq,turn);
+    renderBoard(); return;
+  }
+  selected=null; legalMoves=[]; renderBoard();
+}
+
+function executeMove(m,color,isSecondQueenMove=false){
+  const piece=board[m.from]; const captured=board[m.to];
+
+  const promoRow=color==='w'?0:7;
+  if(piece.type==='P'&&rc(m.to).r===promoRow){
+    if(color==='w'||(color==='b'&&gameMode==='2p')){
+      pendingPromo={...m,promoColor:color}; document.getElementById('promo-modal').classList.add('show'); return;
+    } else { m={...m,promo:'Q'}; }
+  }
+
+  // Save history before move
+  history.push({board:board.slice(),cr:{...castlingRights},ep:enPassantSq,move:m,
+    hasPower:{...hasPower},damaged:{...damaged},hazards:JSON.parse(JSON.stringify(hazards)),
+    knightLastSq:{...knightLastSq},queenDouble:{...queenDouble},totalMoves,
+    movesLeft:{...movesLeft},killsW,killsB,crystals,respawnQueue:JSON.parse(JSON.stringify(respawnQueue))});
+
+  if(captured){
+    (color==='w'?capturedByWhite:capturedByBlack).push(captured.type);
+    delete hasPower[m.to]; delete damaged[m.to];
+    // Bomb: schedule respawn + crystals
+    bombOnCapture(captured, m.to, color);
+  }
+
+  // Knight power: place magma where knight was
+  if(piece.type==='N'&&element==='lava'&&knightLastSq[color]===m.from){
+    addHazard(m.from,'magma',color);
+    knightLastSq[color]=null;
+  }
+
+  // Transfer power/damage state from→to
+  transferPowerState(m.from, m.to);
+
+  const{nb,ncr,nep}=applyMove(board,m,castlingRights,enPassantSq);
+  board=nb; castlingRights=ncr; enPassantSq=nep;
+
+  // Check landing on hazard
+  checkHazardLanding(m.to, color);
+
+  // Process damage on opp pieces
+  const opp=color==='w'?'b':'w';
+  for(let i=0;i<64;i++){
+    if(board[i]&&board[i].color===opp&&damaged[i]){
+      transformDamagedPiece(i); delete damaged[i];
+    }
+  }
+
+  totalMoves++;
+
+  // Queen double move — only for human player (color==='w'), AI handles its own separately
+  if(!isSecondQueenMove&&element==='lava'&&piece.type==='Q'&&queenDouble[color]>0&&color==='w'){
+    queenDouble[color]--;
+    queenSecondMove=true;
+    selected=m.to;
+    legalMoves=legalMovesFor(board,m.to,castlingRights,enPassantSq,color);
+    updatePanels(); renderBoard();
+    setStatus('♕ Другий хід ферзем!','lava-action');
+    return;
+  }
+  queenSecondMove=false;
+
+  endTurn();
+}
+
+function endTurn(){
+  const color=turn;
+  turn=turn==='w'?'b':'w';
+  selected=null; legalMoves=[];
+
+  // Bomb: count down this player's moves and process respawns
+  if(element==='bomb'){
+    movesLeft[color]=Math.max(0,movesLeft[color]-1);
+    processRespawns();
+    updateBombUI();
+    if(checkBombExplosion()){renderBoard();return;}
+  }
+
+  // Tick hazards every full round
+  if(turn==='w') tickHazards();
+
+  updatePanels();
+  const oppMoves=allLegalMoves(board,turn,castlingRights,enPassantSq);
+  if(oppMoves.length===0){
+    if(inCheck(board,turn,castlingRights,enPassantSq)){
+      let w=gameMode==='ai'?(color==='w'?'Ти переміг!':'AI переміг!'):(color==='w'?'Гравець 1!':'Гравець 2!');
+      if(element==='bomb'&&crystals>0){addCrystalsToTotal(crystals);w+=` 💎+${crystals} збережено!`;}
+      setStatus('♛ Шах і мат! '+w,'win');
+    } else setStatus('Нічия — пат!','warn');
+    gameOver=true; renderBoard(); return;
+  }
+  if(inCheck(board,turn,castlingRights,enPassantSq)) setStatus('♟ Шах!','danger');
+  else if(gameMode==='ai') setStatus(turn==='w'?'Твій хід.':'AI думає…','');
+  else setStatus(turn==='w'?'Хід Гравця 1.':'Хід Гравця 2.','');
+
+  renderBoard();
+
+  if(gameMode==='ai'&&turn==='b'&&!gameOver){
+    document.getElementById('thinking').style.display='block';
+    setTimeout(()=>{
+      document.getElementById('thinking').style.display='none';
+      const bm=bestMove(board,'b',castlingRights,enPassantSq);
+      if(!bm) return;
+
+      // Superpower action
+      if(bm.superpower){
+        const{type,idx}=bm.superpower;
+        delete hasPower[idx];
+
+        if(type==='P') activatePawnPower(idx,'b');
+        else if(type==='N'){ knightLastSq['b']=idx; }
+        else if(type==='B') activateBishopPower(idx,'b');
+        else if(type==='R') activateRookPower(idx,'b');
+        else if(type==='Q'){
+          // AI queen double: make 2 queen moves back-to-back, never touching queenSecondMove flag
+          queenDouble['b']=0; // consume all charges immediately for AI
+          // First queen move
+          const q1Moves=legalMovesFor(board,idx,castlingRights,enPassantSq,'b');
+          if(!q1Moves.length){endTurn();return;}
+          const q1Best=q1Moves.reduce((a,m)=>{
+            const{nb,ncr,nep}=applyMove(board,m,castlingRights,enPassantSq);
+            const s=evaluate(nb,'b'); return s>a.score?{m,score:s}:a;
+          },{m:null,score:-Infinity});
+          if(!q1Best.m){endTurn();return;}
+          // Apply first move manually (no endTurn)
+          const{nb:nb1,ncr:ncr1,nep:nep1}=applyMove(board,q1Best.m,castlingRights,enPassantSq);
+          const newQueenPos=q1Best.m.to;
+          board=nb1; castlingRights=ncr1; enPassantSq=nep1;
+          totalMoves++;
+          setStatus('🔥 AI: подвійний хід ферзем!','lava-action');
+          renderBoard();
+          // Second queen move after short delay
+          setTimeout(()=>{
+            const q2Moves=legalMovesFor(board,newQueenPos,castlingRights,enPassantSq,'b');
+            if(q2Moves.length){
+              const q2Best=q2Moves.reduce((a,m)=>{
+                const{nb,ncr,nep}=applyMove(board,m,castlingRights,enPassantSq);
+                const s=evaluate(nb,'b'); return s>a.score?{m,score:s}:a;
+              },{m:null,score:-Infinity});
+              if(q2Best.m){
+                const{nb:nb2,ncr:ncr2,nep:nep2}=applyMove(board,q2Best.m,castlingRights,enPassantSq);
+                board=nb2; castlingRights=ncr2; enPassantSq=nep2;
+                totalMoves++;
+              }
+            }
+            endTurn();
+          },350);
+          return;
+        }
+        else if(type==='K'){
+          // AI selects 4 most valuable enemy pieces to damage
+          const targets=[...Array(64).keys()]
+            .filter(j=>board[j]&&board[j].color==='w'&&board[j].type!=='K')
+            .sort((a,b2)=>VAL[board[b2].type]-VAL[board[a].type])
+            .slice(0,4);
+          targets.forEach(j=>applyDamage(j));
+          // Resolve damage immediately
+          for(let j=0;j<64;j++){
+            if(board[j]&&board[j].color==='w'&&damaged[j]){transformDamagedPiece(j);delete damaged[j];}
+          }
+        }
+
+        setStatus('🔥 AI використав суперсилу!','lava-action');
+        renderBoard();
+
+        // After superpower, AI still makes a regular move (unless it was Rook/Queen which consumed the turn)
+        if(type!=='Q'){
+          setTimeout(()=>{
+            const bm2=bestMove(board,'b',castlingRights,enPassantSq);
+            if(bm2&&!bm2.superpower) executeMove(bm2,'b');
+            else endTurn();
+          },400);
+        }
+        return;
+      }
+
+      executeMove(bm,'b');
+    },150);
+  }
+}
+
+function promote(type){
+  document.getElementById('promo-modal').classList.remove('show');
+  const promoColor=pendingPromo.promoColor||'w';
+  const m={...pendingPromo,promo:type}; pendingPromo=null;
+  executeMove(m,promoColor);
+}
+
+function undoMove(){
+  if(gameOver)gameOver=false;
+  const wantUndo=gameMode==='ai'?2:1;
+  const count=Math.min(history.length,wantUndo);
+  for(let i=0;i<count;i++){
+    const h=history.pop();
+    if(h){board=h.board;castlingRights=h.cr;enPassantSq=h.ep;
+      hasPower=h.hasPower;damaged=h.damaged;hazards=h.hazards;
+      knightLastSq=h.knightLastSq;queenDouble=h.queenDouble;totalMoves=h.totalMoves;
+      if(h.movesLeft){movesLeft=h.movesLeft;killsW=h.killsW;killsB=h.killsB;crystals=h.crystals;respawnQueue=h.respawnQueue||[];}
+    }
+  }
+  updateBombUI();
+  capturedByWhite=[]; capturedByBlack=[];
+  history.forEach(h=>{const cap=h.board[h.move.to];if(cap){const mv=h.board[h.move.from]?.color;(mv==='w'?capturedByWhite:capturedByBlack).push(cap.type);}});
+  selected=null; legalMoves=[]; queenSecondMove=false; kingSelectMode=null;
+  document.body.classList.remove('king-select-mode');
+  turn=gameMode==='ai'?'w':(count%2===0?turn:(turn==='w'?'b':'w'));
+  document.getElementById('move-list').innerHTML='';
+  setStatus(gameMode==='ai'?'Твій хід.':(turn==='w'?'Хід Гравця 1.':'Хід Гравця 2.'),'');
+  updatePanels(); renderBoard();
+}
+
+function setStatus(msg,cls=''){const el=document.getElementById('status-box');el.textContent=msg;el.className=cls||'';}
+function updatePanels(){
+  document.getElementById('box-white').classList.toggle('active',turn==='w');
+  document.getElementById('box-black').classList.toggle('active',turn==='b');
+  document.getElementById('cap-white').textContent=capturedByWhite.map(p=>BL[p]).join('');
+  document.getElementById('cap-black').textContent=capturedByBlack.map(p=>WH[p]).join('');
+}
+
+// ── Start ──
+// ══ LocalStorage progress ══
+const SAVE_KEY = 'ultimate_chess_progress';
+
+function saveProgress(){
+  try {
+    const data = {
+      totalCrystals: loadProgress().totalCrystals + crystals,
+      lastSaved: Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch(e){ console.warn('Save failed:', e); }
+}
+
+function loadProgress(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw) return JSON.parse(raw);
+  } catch(e){}
+  return { totalCrystals: 0, lastSaved: null };
+}
+
+function addCrystalsToTotal(amount){
+  try {
+    const data = loadProgress();
+    data.totalCrystals = (data.totalCrystals||0) + amount;
+    data.lastSaved = Date.now();
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch(e){ console.warn('Save failed:', e); }
+}
+
+function updateTotalCrystalsDisplay(){
+  const data = loadProgress();
+  const el = document.getElementById('total-crystals-display');
+  if(el) el.textContent = data.totalCrystals || 0;
+}
+
+resetGame();
+</script>
+</body>
+</html>
