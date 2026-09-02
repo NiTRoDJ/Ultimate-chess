@@ -37,6 +37,7 @@ body.bomb #bomb-timer-wrap{display:block;}
 #crystal-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;
   padding:8px 14px;font-size:.85rem;display:none;justify-content:space-between;align-items:center;}
 body.bomb #crystal-box{display:flex;}
+body.space #crystal-box{display:flex;}
 .crystal-count{font-family:'Cinzel',serif;color:#aaff88;font-size:1rem;}
 /* Kill score */
 .kill-score{font-size:.72rem;color:var(--muted);margin-top:4px;}
@@ -138,17 +139,52 @@ body.lava #board{box-shadow:0 0 40px rgba(255,106,0,.25);}
 .back-btn{background:none;border:none;color:var(--muted);font-size:.78rem;cursor:pointer;
   margin-top:14px;text-decoration:underline;font-family:'Inter',sans-serif;}
 .back-btn:hover{color:var(--text);}
-#promo-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:center;justify-content:center;}
+#promo-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:center;justify-content:center;}
 #promo-modal.show{display:flex;}
-.promo-box{background:var(--surface);border:2px solid var(--gold);border-radius:12px;padding:24px 32px;text-align:center;}
+.promo-box{background:var(--surface);border:2px solid var(--gold);border-radius:12px;padding:24px 32px;text-align:center;position:relative;z-index:501;}
 .promo-box h3{font-family:'Cinzel',serif;color:var(--gold2);margin-bottom:16px;}
 .promo-options{display:flex;gap:16px;justify-content:center;}
-.promo-btn{font-size:2.2rem;cursor:pointer;padding:8px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);}
-.promo-btn:hover{border-color:var(--gold);}
+.promo-btn{font-size:2.2rem;cursor:pointer;padding:12px 16px;border-radius:8px;background:var(--surface2);
+  border:2px solid var(--border);pointer-events:all;position:relative;z-index:502;
+  color:var(--text);line-height:1;min-width:60px;min-height:60px;
+  -webkit-tap-highlight-color:rgba(255,255,255,.2);touch-action:manipulation;}
+.promo-btn:hover,.promo-btn:active{border-color:var(--gold);background:var(--surface);}
 /* King damage mode */
 body.king-select-mode .sq:hover{outline:2px solid #ff6a00;outline-offset:-2px;}
 /* Bomb explosion */
 @keyframes bomb-explosion{0%{transform:scale(1);}20%{transform:scale(1.08);filter:brightness(3);}60%{transform:scale(.95);filter:brightness(.5);}100%{transform:scale(1);filter:none;}}
+/* ══ SPACE theme ══ */
+body.space{--light-sq:#2a1a4a;--dark-sq:#140a28;--light-sq-h:#3a2a6a;--dark-sq-h:#1e1038;
+  --gold:#b060ff;--gold2:#e0aaff;--bg:#04020e;--surface:#0c0820;--surface2:#140e2c;--border:#2a1a50;}
+body.space #board{box-shadow:0 0 50px rgba(160,80,255,.3);border-color:#b060ff;}
+body.space #element-badge{background:rgba(160,80,255,.15);border-color:#b060ff;color:#e0aaff;}
+/* Space piece states */
+.piece.space-power{filter:drop-shadow(0 0 7px #b060ff) drop-shadow(0 0 14px #8030ff) drop-shadow(0 1px 3px rgba(0,0,0,.6));}
+/* Cosmic glow hazard */
+.hazard.glow-tile{background:rgba(160,80,255,.3);animation:glow-pulse .8s infinite alternate;}
+@keyframes glow-pulse{from{background:rgba(160,80,255,.25);box-shadow:inset 0 0 8px rgba(160,80,255,.4);}to{background:rgba(200,120,255,.45);box-shadow:inset 0 0 16px rgba(200,120,255,.7);}}
+/* Eye hazard 🧿 */
+.hazard.eye-tile{animation:eye-pulse .6s infinite alternate;}
+@keyframes eye-pulse{from{background:rgba(0,180,255,.3);}to{background:rgba(0,240,200,.5);}}
+/* Space action status */
+#status-box.space-action{border-color:#b060ff;color:#e0aaff;}
+/* Space buttons panel */
+#space-btns{display:none;gap:8px;}
+body.space #space-btns{display:flex;}
+.space-ability-btn{flex:1;background:var(--surface2);border:1px solid #2a1a50;border-radius:8px;
+  color:#e0aaff;font-size:1.2rem;padding:8px 0;cursor:pointer;transition:border-color .15s,background .15s;
+  touch-action:manipulation;}
+.space-ability-btn:hover{border-color:#b060ff;background:#1e1038;}
+.space-ability-btn:disabled{opacity:.35;cursor:not-allowed;}
+/* Rook touch glow */
+.sq.rook-touch{outline:3px solid #b060ff;outline-offset:-3px;}
+/* Starfield bg */
+body.space::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 20% 30%,rgba(80,0,160,.15) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 70%,rgba(0,80,160,.1) 0%,transparent 60%);}
+body.space>*{position:relative;z-index:1;}
+/* Super-pawn indicator */
+.piece.super-pawn{filter:drop-shadow(0 0 5px #b060ff) drop-shadow(0 1px 3px rgba(0,0,0,.6));}
 </style>
 </head>
 <body>
@@ -187,6 +223,10 @@ body.king-select-mode .sq:hover{outline:2px solid #ff6a00;outline-offset:-2px;}
     <div id="crystal-box">
       <div>💎 <span class="crystal-count" id="crystal-count">0</span> кристалів</div>
       <div style="font-size:.72rem;color:var(--muted)">Вбивства: <span id="kills-w">0</span>⚪ / <span id="kills-b">0</span>⚫</div>
+    </div>
+    <div id="space-btns">
+      <button class="space-ability-btn" id="btn-eye" onclick="activateEye()" title="🧿 Космічне око (1 раз)">🧿</button>
+      <button class="space-ability-btn" id="btn-star" onclick="activateStar()" title="✨ Зоряний спалах (1 раз)">✨</button>
     </div>
     <button class="btn primary" onclick="resetGame()">Нова гра</button>
     <button class="btn" onclick="undoMove()">↩ Відмінити хід</button>
@@ -231,29 +271,32 @@ body.king-select-mode .sq:hover{outline:2px solid #ff6a00;outline-offset:-2px;}
       <button class="modal-btn bomb-btn" onclick="chooseElement('bomb')" style="border-color:#2a402a;">
         <span class="icon">💣</span><div><div class="m-title" style="color:#aaff88;">Гігантська бомба</div><div class="m-desc">Фігури воскресають · 30 ходів · Кристали</div></div>
       </button>
+      <button class="modal-btn" onclick="chooseElement('space')" style="border-color:#2a1a50;">
+        <span class="icon">🚀</span><div><div class="m-title" style="color:#e0aaff;">Космічна</div><div class="m-desc">Суперсили · Космічне сяйво · 🧿✨</div></div>
+      </button>
     </div>
     <button class="back-btn" onclick="goBack()">← Назад</button>
   </div>
 </div>
 
 <!-- Promo -->
-<div id="promo-modal">
+  <div id="promo-modal">
   <div class="promo-box">
     <h3>Перетворення пішака</h3>
     <div class="promo-options">
-      <div class="promo-btn" onclick="promote('Q')">♕</div>
-      <div class="promo-btn" onclick="promote('R')">♖</div>
-      <div class="promo-btn" onclick="promote('B')">♗</div>
-      <div class="promo-btn" onclick="promote('N')">♘</div>
+      <button class="promo-btn" onclick="promote('Q',event)">♕</button>
+      <button class="promo-btn" onclick="promote('R',event)">♖</button>
+      <button class="promo-btn" onclick="promote('B',event)">♗</button>
+      <button class="promo-btn" onclick="promote('N',event)">♘</button>
     </div>
   </div>
 </div>
 
 <script>
 // ══ Symbols & values ══
-const WH={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'};
-const BL={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'};
-const VAL={P:100,N:320,B:330,R:500,Q:900,K:20000};
+const WH={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',S:'♙'};
+const BL={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟',S:'♟'};
+const VAL={P:100,N:320,B:330,R:500,Q:900,K:20000,S:120};
 
 // ══ PST ══
 const PAWN_TBL=[0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10,5,5,10,25,25,10,5,5,0,0,0,20,20,0,0,0,5,-5,-10,0,0,-10,-5,5,5,10,10,-20,-20,10,10,5,0,0,0,0,0,0,0,0];
@@ -262,7 +305,7 @@ const BISHOP_TBL=[-20,-10,-10,-10,-10,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,10
 const ROOK_TBL=[0,0,0,0,0,0,0,0,5,10,10,10,10,10,10,5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,-5,0,0,0,0,0,0,-5,0,0,0,5,5,0,0,0];
 const QUEEN_TBL=[-20,-10,-10,-5,-5,-10,-10,-20,-10,0,0,0,0,0,0,-10,-10,0,5,5,5,5,0,-10,-5,0,5,5,5,5,0,-5,0,0,5,5,5,5,0,-5,-10,5,5,5,5,5,0,-10,-10,0,5,0,0,0,0,-10,-20,-10,-10,-5,-5,-10,-10,-20];
 const KING_TBL=[-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-30,-40,-40,-50,-50,-40,-40,-30,-20,-30,-30,-40,-40,-30,-30,-20,-10,-20,-20,-20,-20,-20,-20,-10,20,20,0,0,0,0,20,20,20,30,10,0,0,10,30,20];
-function getPST(t){return{P:PAWN_TBL,N:KNIGHT_TBL,B:BISHOP_TBL,R:ROOK_TBL,Q:QUEEN_TBL,K:KING_TBL}[t];}
+function getPST(t){return{P:PAWN_TBL,S:PAWN_TBL,N:KNIGHT_TBL,B:BISHOP_TBL,R:ROOK_TBL,Q:QUEEN_TBL,K:KING_TBL}[t]||PAWN_TBL;}
 
 // ══ State ══
 let board, turn, selected, legalMoves, history, gameOver;
@@ -279,6 +322,29 @@ let gameMode='ai', element='standard';
 let movesLeft={w:30,b:30};
 let killsW=0, killsB=0, crystals=0;
 let respawnQueue=[];
+
+// ══ Space state ══
+// spaceHasPower — same as hasPower but for space (reused hasPower)
+// spaceKnightQueenMode[color] — next knight move is queen-like
+// spacePawnExtended[color] — next pawn move can go 1/2/3
+// spaceKingBonus[color] — extra moves remaining
+// rookLastSq[color] — last rook position for glow
+// eyeUsed[color], starUsed[color] — one-time abilities
+// eyeActive[color] — placing eye mode
+// bishopGlowMode[color] — placing glow mode
+// queenKnightMode[color] — placing knight mode
+// eyeHazards = [{sq, owner, phase, turnsLeft}] phase: 1=cross,2=full,done
+// rookTouchPending[color] — rook touch choice pending
+let spaceKnightQueenMode={w:false,b:false};
+let spacePawnExtended={w:false,b:false};
+let spaceKingBonus={w:0,b:0};
+let rookLastSq={w:null,b:null};
+let eyeUsed={w:false,b:false}, starUsed={w:false,b:false};
+let eyePlaceMode={w:false,b:false};
+let bishopGlowMode={w:false,b:false};
+let queenKnightMode={w:false,b:false};
+let eyeHazards=[];
+let rookTouchPending=null; // {color, rook1, rook2}
 
 // ══ Lava state ══
 // hasPower[idx] = true/false (piece still has superpower)
@@ -331,10 +397,11 @@ function goBack(){
 function chooseElement(el){
   element=el; gameMode=pendingMode;
   document.getElementById('element-modal').classList.add('hidden');
-  document.body.classList.remove('water','lava','bomb');
+  document.body.classList.remove('water','lava','bomb','space');
   if(el==='water') document.body.classList.add('water');
   if(el==='lava')  document.body.classList.add('lava');
   if(el==='bomb')  document.body.classList.add('bomb');
+  if(el==='space') document.body.classList.add('space');
 
   board=initBoard(); turn='w'; selected=null; legalMoves=[]; history=[];
   gameOver=false; castlingRights={wK:true,wQ:true,bK:true,bQ:true};
@@ -353,14 +420,45 @@ function chooseElement(el){
   movesLeft={w:30,b:30}; killsW=0; killsB=0; crystals=0; respawnQueue=[];
   updateBombUI();
 
-  const elNames={standard:'⚔ Стандартна',water:'💧 Водяна',lava:'🔥 Лава',bomb:'💣 Гігантська бомба'};
+  // Space init
+  spaceKnightQueenMode={w:false,b:false}; spacePawnExtended={w:false,b:false};
+  spaceKingBonus={w:0,b:0}; rookLastSq={w:null,b:null};
+  eyeUsed={w:false,b:false}; starUsed={w:false,b:false};
+  eyePlaceMode={w:false,b:false}; bishopGlowMode={w:false,b:false};
+  queenKnightMode={w:false,b:false}; eyeHazards=[]; rookTouchPending=null;
+  if(el==='space'){
+    // Replace a,b,g,h pawns with super-pawns (type 'S')
+    // White: row 6 cols 0,1,6,7 → S; Black: row 1 cols 0,1,6,7 → S
+    for(const c of[0,1,6,7]){
+      if(board[sq(6,c)]) board[sq(6,c)]={color:'w',type:'S'};
+      if(board[sq(1,c)]) board[sq(1,c)]={color:'b',type:'S'};
+    }
+    // Give all pieces superpowers
+    for(let i=0;i<64;i++) if(board[i]) hasPower[i]=true;
+    // Update space buttons
+    document.getElementById('btn-eye').disabled=false;
+    document.getElementById('btn-star').disabled=false;
+  }
+  updateSpaceBtnUI();
+
+  const elNames={standard:'⚔ Стандартна',water:'💧 Водяна',lava:'🔥 Лава',bomb:'💣 Гігантська бомба',space:'🚀 Космічна'};
   document.getElementById('mode-label').textContent=isAI?'Людина проти AI · Середній рівень':'Два гравці · На одному пристрої';
   document.getElementById('element-badge').textContent=elNames[el];
   document.querySelector('#box-black .label').textContent=isAI?'AI (Чорні)':'Гравець 2 (Чорні)';
   document.querySelector('#box-black .name').textContent=isAI?'⚔ Magnus Bot':'♚ Гравець 2';
   document.querySelector('#box-white .label').textContent=isAI?'Ти (Білі)':'Гравець 1 (Білі)';
   document.querySelector('#box-white .name').textContent=isAI?'♔ Гравець':'♔ Гравець 1';
-  document.getElementById('power-legend').classList.toggle('show', el==='lava');
+  document.getElementById('power-legend').classList.toggle('show', el==='lava'||el==='space');
+  if(el==='space'){
+    document.querySelector('#power-legend h4').textContent='🚀 Суперсили (тримай 2с)';
+    document.getElementById('power-legend').innerHTML=`<h4>🚀 Суперсили (тримай 2с)</h4>
+      ♙/S: наступний хід 1-3 кл.<br>♘ наступний хід як ферзь<br>♗ ставить сяйво 🌟<br>
+      ♖ сяйво на попередній позиції<br>♕ ставить коня з силою<br>♔ +5 ходів`;
+  } else if(el==='lava'){
+    document.getElementById('power-legend').innerHTML=`<h4>🔥 Суперсили (тримай 2с)</h4>
+      ♙ Лава попереду<br>♘ Магма слідом<br>♗ Вогонь навколо<br>
+      ♖ → 4 пішаки з силою<br>♕ 3 подвійних ходи<br>♔ Пошкодити 4 фігури`;
+  }
   renderBoard(); setStatus('Твій хід. Грай білими.',''); updatePanels();
   document.getElementById('move-list').innerHTML='';
 }
@@ -370,17 +468,28 @@ function rawMovesStandard(b,idx,cr,ep){
   const p=b[idx]; if(!p) return [];
   const{r,c}=rc(idx); const moves=[];
   const push=(r2,c2,flags={})=>{if(inBounds(r2,c2))moves.push({from:idx,to:sq(r2,c2),...flags});};
-  if(p.type==='P'){
+  if(p.type==='P'||p.type==='S'){
     const dir=p.color==='w'?-1:1; const startRow=p.color==='w'?6:1;
-    if(inBounds(r+dir,c)&&!b[sq(r+dir,c)]){
-      push(r+dir,c);
-      if(r===startRow&&!b[sq(r+2*dir,c)])push(r+2*dir,c,{double:true});
+    // Super-pawn with extended power: can go 1,2,3
+    const maxFwd=(p.type==='S'||spacePawnExtended[p.color])&&element==='space'?3:1;
+    for(let steps=1;steps<=maxFwd;steps++){
+      if(!inBounds(r+steps*dir,c)||b[sq(r+steps*dir,c)]) break;
+      push(r+steps*dir,c);
     }
-    for(const dc of[-1,1]){
-      if(!inBounds(r+dir,c+dc))continue;
-      const t=b[sq(r+dir,c+dc)];
-      if(t&&t.color!==p.color)push(r+dir,c+dc,{capture:true});
-      if(ep===sq(r+dir,c+dc))push(r+dir,c+dc,{enPassant:true});
+    // Standard double from start (non-space or non-extended)
+    if(p.type==='P'&&!spacePawnExtended[p.color]){
+      if(inBounds(r+dir,c)&&!b[sq(r+dir,c)]&&r===startRow&&!b[sq(r+2*dir,c)])push(r+2*dir,c,{double:true});
+    }
+    // Captures (water pawn: straight; standard: diagonal)
+    if(element==='water'){
+      if(inBounds(r+dir,c)){const t=b[sq(r+dir,c)];if(t&&t.color!==p.color)push(r+dir,c,{capture:true});}
+    } else {
+      for(const dc of[-1,1]){
+        if(!inBounds(r+dir,c+dc))continue;
+        const t=b[sq(r+dir,c+dc)];
+        if(t&&t.color!==p.color)push(r+dir,c+dc,{capture:true});
+        if(ep===sq(r+dir,c+dc))push(r+dir,c+dc,{enPassant:true});
+      }
     }
   }
   if(p.type==='N'){
@@ -393,6 +502,17 @@ function rawMovesStandard(b,idx,cr,ep){
   if(p.type==='B')slides([[-1,-1],[-1,1],[1,-1],[1,1]]);
   if(p.type==='R')slides([[-1,0],[1,0],[0,-1],[0,1]]);
   if(p.type==='Q')slides([[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]);
+  // Knight: normal or queen-like if space power active
+  if(p.type==='N'){
+    if(element==='space'&&spaceKnightQueenMode[p.color]){
+      slides([[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]);
+    } else {
+      for(const[dr,dc]of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]){
+        if(!inBounds(r+dr,c+dc))continue; const t=b[sq(r+dr,c+dc)];
+        if(!t||t.color!==p.color)push(r+dr,c+dc);
+      }
+    }
+  }
   if(p.type==='K'){
     for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
       if(!inBounds(r+dr,c+dc))continue; const t=b[sq(r+dr,c+dc)];
@@ -470,7 +590,7 @@ function inCheck(b,color,cr,ep){return isAttacked(b,kingPos(b,color),color==='w'
 // ══ Evaluation ══
 function evaluate(b,color){
   let score=0;
-  for(let i=0;i<64;i++){const p=b[i];if(!p)continue;const idx2=p.color==='w'?i:63-i;score+=(p.color===color?1:-1)*(VAL[p.type]+getPST(p.type)[idx2]);}
+  for(let i=0;i<64;i++){const p=b[i];if(!p)continue;const idx2=p.color==='w'?i:63-i;const pst=getPST(p.type);const v=VAL[p.type]||100;score+=(p.color===color?1:-1)*(v+(pst?pst[idx2]:0));}
   return score;
 }
 function minimax(b,depth,alpha,beta,maximizing,color,cr,ep){
@@ -776,6 +896,11 @@ function activateSuperpower(idx){
 
   delete hasPower[idx]; // use it
 
+  if(element==='space'){
+    activateSpaceSuperpower(idx);
+    return;
+  }
+
   if(p.type==='P') activatePawnPower(idx,p.color);
   else if(p.type==='N') activateKnightPower(idx,p.color);
   else if(p.type==='B') activateBishopPower(idx,p.color);
@@ -928,6 +1053,259 @@ function checkBombExplosion(){
   return false;
 }
 
+// ══ SPACE ELEMENT LOGIC ══
+
+function updateSpaceBtnUI(){
+  if(element!=='space') return;
+  const btnEye=document.getElementById('btn-eye');
+  const btnStar=document.getElementById('btn-star');
+  btnEye.disabled=eyeUsed[turn];
+  btnStar.disabled=starUsed[turn];
+  btnEye.title=eyeUsed[turn]?'🧿 Вже використано':'🧿 Космічне око (1 раз)';
+  btnStar.title=starUsed[turn]?'✨ Вже використано':'✨ Зоряний спалах (1 раз)';
+}
+
+// Cosmic glow — like fire but disappears after damaging, no spread, +3 crystals
+function addGlow(s, owner){
+  hazards=hazards.filter(h=>!(h.sq===s&&h.type==='glow'));
+  hazards.push({sq:s,type:'glow',owner,turnsLeft:Infinity,born:totalMoves});
+}
+
+function checkGlowLanding(idx, color){
+  if(element!=='space') return;
+  const opp=color==='w'?'b':'w';
+  const hIdx=hazards.findIndex(h=>h.sq===idx&&h.type==='glow'&&h.owner===opp);
+  if(hIdx===-1) return;
+  if(board[idx]&&board[idx].color===color&&board[idx].type!=='K'){
+    applyDamage(idx);
+    // +3 crystals for owner of glow
+    if(gameMode==='ai'&&hazards[hIdx].owner==='w') crystals+=3;
+    updateBombUI();
+    hazards.splice(hIdx,1); // disappears after damage
+  }
+}
+
+// Space superpower activation
+function activateSpaceSuperpower(idx){
+  if(!hasPower[idx]) return;
+  const p=board[idx];
+  if(!p||p.color!==turn) return;
+  delete hasPower[idx];
+
+  if(p.type==='P'||p.type==='S'){
+    spacePawnExtended[p.color]=true;
+    setStatus('🚀 Пішак: наступний хід 1-3 клітинки!','space-action');
+  } else if(p.type==='N'){
+    spaceKnightQueenMode[p.color]=true;
+    setStatus('🚀 Кінь: наступний хід як ферзь!','space-action');
+  } else if(p.type==='R'){
+    rookLastSq[p.color]=idx;
+    setStatus('🚀 Тура: після ходу — сяйво на попередній позиції!','space-action');
+  } else if(p.type==='B'){
+    bishopGlowMode[p.color]=true;
+    setStatus('🚀 Слон: клікни на вільну клітинку щоб поставити сяйво!','space-action');
+    return; // don't end — wait for placement click
+  } else if(p.type==='Q'){
+    queenKnightMode[p.color]=true;
+    setStatus('🚀 Ферзь: клікни на вільну клітинку щоб поставити коня!','space-action');
+    return;
+  } else if(p.type==='K'){
+    spaceKingBonus[p.color]+=5;
+    setStatus(`🚀 Король: +5 додаткових ходів! (залишилось: ${spaceKingBonus[p.color]})`, 'space-action');
+  }
+  renderBoard();
+}
+
+// 🧿 Eye ability
+function activateEye(){
+  if(element!=='space'||eyeUsed[turn]) return;
+  eyePlaceMode[turn]=true;
+  setStatus('🧿 Клікни на клітинку (не на межі) щоб поставити Космічне Око!','space-action');
+}
+
+// ✨ Star ability
+function activateStar(){
+  if(element!=='space'||starUsed[turn]) return;
+  starUsed[turn]=true;
+  updateSpaceBtnUI();
+  const opp=turn==='w'?'b':'w';
+  // Restore all own superpowers
+  for(let i=0;i<64;i++){
+    if(board[i]&&board[i].color===turn) hasPower[i]=true;
+  }
+  // Cosmic glow on random enemy piece (not king)
+  const targets=[...Array(64).keys()].filter(i=>board[i]&&board[i].color===opp&&board[i].type!=='K');
+  if(targets.length){
+    const t=targets[Math.floor(Math.random()*targets.length)];
+    addGlow(t,turn);
+  }
+  setStatus('✨ Суперсили відновлено + сяйво на ворожій фігурі!','space-action');
+  renderBoard();
+}
+
+// Rook touch check — called after every move in space mode
+function checkRookTouch(movedPieceIdx, color){
+  if(element!=='space') return;
+  const p=board[movedPieceIdx];
+  if(!p||p.type!=='R') return;
+  const{r,c}=rc(movedPieceIdx);
+  for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+    const nr=r+dr,nc=c+dc;
+    if(!inBounds(nr,nc)) continue;
+    const ns=sq(nr,nc);
+    const other=board[ns];
+    if(other&&other.type==='R'&&other.color===color&&ns!==movedPieceIdx){
+      // Two friendly rooks are touching!
+      rookTouchPending={color,rook1:movedPieceIdx,rook2:ns};
+      setStatus('♖♖ Тури торкнулись! Обери: [Нова тура] або [Відновити 4 суперсили]','space-action');
+      renderBoard();
+      return;
+    }
+  }
+}
+
+function rookTouchNewRook(){
+  if(!rookTouchPending) return;
+  const {color}=rookTouchPending;
+  // Teleport both rooks to random free squares in rows 5-7 (white) or 0-2 (black)
+  teleportRooks(rookTouchPending.rook1, rookTouchPending.rook2, color);
+  // Place a new rook somewhere on back row
+  const backRow=color==='w'?7:0;
+  for(let c2=0;c2<8;c2++){
+    const s=sq(backRow,c2);
+    if(!board[s]){board[s]={color,type:'R'};hasPower[s]=true;break;}
+  }
+  rookTouchPending=null;
+  setStatus('♖ Нова тура поставлена!','space-action');
+  renderBoard();
+}
+
+function rookTouchRestorePowers(){
+  if(!rookTouchPending) return;
+  const {color}=rookTouchPending;
+  teleportRooks(rookTouchPending.rook1, rookTouchPending.rook2, color);
+  // Restore superpowers to 4 chosen pieces — for simplicity restore to 4 most valuable without power
+  const candidates=[...Array(64).keys()]
+    .filter(i=>board[i]&&board[i].color===color&&!hasPower[i])
+    .sort((a,b2)=>VAL[board[b2].type]-VAL[board[a].type])
+    .slice(0,4);
+  candidates.forEach(i=>hasPower[i]=true);
+  rookTouchPending=null;
+  setStatus(`🚀 Суперсили відновлено ${candidates.length} фігурам!`,'space-action');
+  renderBoard();
+}
+
+function teleportRooks(r1,r2,color){
+  // Remove from current positions
+  board[r1]=null; delete hasPower[r1];
+  board[r2]=null; delete hasPower[r2];
+  // Place in rows 5-7 for white, 0-2 for black
+  const rows=color==='w'?[5,6,7]:[0,1,2];
+  let placed=0;
+  const shuffled=[];
+  for(const row of rows) for(let c2=0;c2<8;c2++) shuffled.push(sq(row,c2));
+  shuffled.sort(()=>Math.random()-.5);
+  for(const s of shuffled){
+    if(!board[s]){
+      board[s]={color,type:'R'};
+      placed++;
+      if(placed>=2) break;
+    }
+  }
+}
+
+// Eye hazard tick
+function tickEyeHazards(){
+  if(element!=='space') return;
+  const toRemove=[];
+  for(let i=0;i<eyeHazards.length;i++){
+    const e=eyeHazards[i];
+    e.turnsLeft--;
+    if(e.phase===1&&e.turnsLeft<=0){
+      // Expand cross
+      const{r,c}=rc(e.center);
+      e.phase=2; e.turnsLeft=1;
+      for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
+        const nr=r+dr,nc=c+dc;
+        if(inBounds(nr,nc)){
+          const ns=sq(nr,nc);
+          const opp=e.owner==='w'?'b':'w';
+          if(board[ns]&&board[ns].color===opp&&board[ns].type!=='K'){board[ns]=null;delete hasPower[ns];}
+          e.sqs.push(ns);
+        }
+      }
+    } else if(e.phase===2&&e.turnsLeft<=0){
+      // Expand diagonals (full 3x3)
+      const{r,c}=rc(e.center);
+      e.phase=3; e.turnsLeft=2;
+      for(const[dr,dc]of[[-1,-1],[-1,1],[1,-1],[1,1]]){
+        const nr=r+dr,nc=c+dc;
+        if(inBounds(nr,nc)){
+          const ns=sq(nr,nc);
+          const opp=e.owner==='w'?'b':'w';
+          if(board[ns]&&board[ns].color===opp&&board[ns].type!=='K'){board[ns]=null;delete hasPower[ns];}
+          e.sqs.push(ns);
+        }
+      }
+    } else if(e.phase===3&&e.turnsLeft<=0){
+      toRemove.push(i);
+    }
+  }
+  for(let i=toRemove.length-1;i>=0;i--) eyeHazards.splice(toRemove[i],1);
+}
+
+// Tick all space hazards (glow stays, eye expands)
+function tickSpaceHazards(){
+  if(element!=='space') return;
+  tickEyeHazards();
+  // Check if any piece sits on glow
+  for(let i=0;i<64;i++){
+    if(!board[i]) continue;
+    const hIdx=hazards.findIndex(h=>h.sq===i&&h.type==='glow'&&h.owner!==board[i].color);
+    if(hIdx!==-1&&board[i].type!=='K'){
+      applyDamage(i);
+      if(gameMode==='ai'&&hazards[hIdx].owner==='w') crystals+=3;
+      updateBombUI();
+      hazards.splice(hIdx,1);
+    }
+  }
+}
+
+// Render space hazards on board
+function getSpaceHazardAt(idx){
+  // Eye hazard squares
+  for(const e of eyeHazards){
+    if(e.center===idx||e.sqs.includes(idx)) return {type:'eye',phase:e.phase};
+  }
+  return null;
+}
+
+// Space king bonus: extra moves counter
+let spaceKingExtraMoves={w:0,b:0}; // alias for clarity — same as spaceKingBonus
+
+// After move: handle space-specific post-move effects
+function spacePostMove(m, color){
+  if(element!=='space') return;
+  const p=board[m.to];
+  if(!p) return;
+
+  // Rook: if power was activated, place glow on previous square
+  if(p.type==='R'&&rookLastSq[color]===m.from){
+    addGlow(m.from,color);
+    rookLastSq[color]=null;
+  }
+
+  // Reset one-shot modes after use
+  if(p.type==='N') spaceKnightQueenMode[color]=false;
+  if(p.type==='P'||p.type==='S') spacePawnExtended[color]=false;
+
+  // Check rook touch
+  checkRookTouch(m.to, color);
+
+  // Check glow landing
+  checkGlowLanding(m.to, color);
+}
+
 // ══ Rendering ══
 function renderBoard(){
   const el=document.getElementById('board');
@@ -950,8 +1328,16 @@ function renderBoard(){
     if(h){
       const hd=document.createElement('div');
       hd.className='hazard '+h.type+'-tile';
-      hd.textContent=h.type==='lava'?'🌋':h.type==='magma'?'🪨':'🔥';
+      hd.textContent=h.type==='lava'?'🌋':h.type==='magma'?'🪨':h.type==='fire'?'🔥':h.type==='glow'?'🌟':'🔥';
       if(h.type==='lava')hd.title=`Лава (зникне через ${h.turnsLeft} ходи)`;
+      div.appendChild(hd);
+    }
+    // Eye hazard overlay
+    const spH=getSpaceHazardAt(i);
+    if(spH){
+      const hd=document.createElement('div');
+      hd.className='hazard eye-tile';
+      hd.textContent='🧿';
       div.appendChild(hd);
     }
 
@@ -963,12 +1349,17 @@ function renderBoard(){
         if(hasPower[i])span.classList.add('has-power');
         if(damaged[i])span.classList.add('damaged');
       }
+      if(element==='space'){
+        if(hasPower[i])span.classList.add('space-power');
+        if(damaged[i])span.classList.add('damaged');
+        if(board[i].type==='S')span.classList.add('super-pawn');
+      }
       div.appendChild(span);
     }
 
     div.addEventListener('click',()=>onSquareClick(i));
-    if(element==='lava'&&board[i]&&board[i].color===turn&&hasPower[i]){
-      const usable=canUsePower(i);
+    if((element==='lava'||element==='space')&&board[i]&&board[i].color===turn&&hasPower[i]){
+      const usable=element==='lava'?canUsePower(i):true;
       if(usable){
         div.addEventListener('mousedown',()=>startHold(i,div));
         div.addEventListener('mouseup',cancelHold);
@@ -976,12 +1367,28 @@ function renderBoard(){
         div.addEventListener('touchstart',()=>startHold(i,div),{passive:true});
         div.addEventListener('touchend',cancelHold,{passive:true});
       } else {
-        // Show dimmed orange — power exists but unusable from here
         const span=div.querySelector('.piece');
         if(span){span.classList.remove('has-power');span.style.opacity='.5';span.style.filter='drop-shadow(0 0 4px #a04000) drop-shadow(0 1px 3px rgba(0,0,0,.6))';}
       }
     }
     el.appendChild(div);
+  }
+
+  // Rook touch UI — show choice buttons if pending
+  if(rookTouchPending&&rookTouchPending.color===turn){
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:absolute;bottom:0;left:0;right:0;background:rgba(10,5,30,.9);padding:10px;display:flex;gap:8px;z-index:10;';
+    const b1=document.createElement('button');
+    b1.className='space-ability-btn';b1.textContent='♖ Нова тура';b1.style.flex='1';
+    b1.onclick=rookTouchNewRook;
+    const b2=document.createElement('button');
+    b2.className='space-ability-btn';b2.textContent='⚡ Відновити 4 суперсили';b2.style.flex='1';
+    b2.onclick=rookTouchRestorePowers;
+    overlay.appendChild(b1);overlay.appendChild(b2);
+    document.querySelector('.board-wrap').appendChild(overlay);
+  } else {
+    const old=document.querySelector('.board-wrap>div:not(#board):not(#bomb-timer-wrap)');
+    if(old)old.remove();
   }
 }
 
@@ -1010,7 +1417,51 @@ function cancelHold(){holdSq=null;holdTimer=null;if(holdRingEl){holdRingEl.remov
 
 // ══ Input ══
 function onSquareClick(idx){
-  if(gameOver||pendingPromo) return;
+  if(gameOver) return;
+  if(document.getElementById('promo-modal').classList.contains('show')) return;
+
+  // Space: Eye placement mode
+  if(element==='space'&&eyePlaceMode[turn]){
+    const{r,c}=rc(idx);
+    if(r>0&&r<7&&c>0&&c<7&&!board[idx]){
+      eyeUsed[turn]=true; eyePlaceMode[turn]=false;
+      const owner=turn;
+      eyeHazards.push({center:idx,sqs:[idx],owner,phase:1,turnsLeft:1});
+      // Instantly kill center square enemy
+      const opp=turn==='w'?'b':'w';
+      if(board[idx]&&board[idx].color===opp&&board[idx].type!=='K'){board[idx]=null;delete hasPower[idx];}
+      updateSpaceBtnUI();
+      setStatus('🧿 Космічне Око поставлено!','space-action');
+      renderBoard(); return;
+    } else {
+      setStatus('⛔ Тільки не на межі і на вільну клітинку!','warn'); return;
+    }
+  }
+
+  // Space: Bishop glow placement
+  if(element==='space'&&bishopGlowMode[turn]){
+    if(!board[idx]){
+      bishopGlowMode[turn]=false;
+      addGlow(idx,turn);
+      setStatus('🌟 Космічне сяйво поставлено!','space-action');
+      renderBoard(); return;
+    } else {
+      setStatus('⛔ Клітинка зайнята!','warn'); return;
+    }
+  }
+
+  // Space: Queen knight placement
+  if(element==='space'&&queenKnightMode[turn]){
+    if(!board[idx]){
+      queenKnightMode[turn]=false;
+      board[idx]={color:turn,type:'N'};
+      hasPower[idx]=true;
+      setStatus('♞ Кінь з суперсилою поставлено!','space-action');
+      renderBoard(); return;
+    } else {
+      setStatus('⛔ Клітинка зайнята!','warn'); return;
+    }
+  }
 
   // King select mode
   if(kingSelectMode&&kingSelectMode.color===turn){
@@ -1058,9 +1509,9 @@ function executeMove(m,color,isSecondQueenMove=false){
 
   const promoRow=color==='w'?0:7;
   if(piece.type==='P'&&rc(m.to).r===promoRow){
-    if(color==='w'||(color==='b'&&gameMode==='2p')){
-      pendingPromo={...m,promoColor:color}; document.getElementById('promo-modal').classList.add('show'); return;
-    } else { m={...m,promo:'Q'}; }
+    // Auto-promote to queen (with superpower in lava mode)
+    m={...m, promo:'Q'};
+    if(element==='lava') hasPower[m.to]=true;
   }
 
   // Save history before move
@@ -1087,6 +1538,9 @@ function executeMove(m,color,isSecondQueenMove=false){
 
   const{nb,ncr,nep}=applyMove(board,m,castlingRights,enPassantSq);
   board=nb; castlingRights=ncr; enPassantSq=nep;
+
+  // Space post-move effects
+  spacePostMove(m, color);
 
   // Check landing on hazard
   checkHazardLanding(m.to, color);
@@ -1129,8 +1583,19 @@ function endTurn(){
     if(checkBombExplosion()){renderBoard();return;}
   }
 
+  // Space king bonus moves — don't flip turn, just keep going
+  if(element==='space'&&spaceKingBonus[color]>0&&!rookTouchPending){
+    spaceKingBonus[color]--;
+    turn=color; // keep same player's turn
+    selected=null; legalMoves=[];
+    setStatus(`🚀 Бонусний хід! Залишилось: ${spaceKingBonus[color]}`,'space-action');
+    updateSpaceBtnUI(); updatePanels(); renderBoard(); return;
+  }
+
   // Tick hazards every full round
-  if(turn==='w') tickHazards();
+  if(turn==='w'){tickHazards();tickSpaceHazards();}
+
+  updateSpaceBtnUI();
 
   updatePanels();
   const oppMoves=allLegalMoves(board,turn,castlingRights,enPassantSq);
@@ -1232,11 +1697,21 @@ function endTurn(){
   }
 }
 
-function promote(type){
+function promote(type, e){
+  if(e) e.stopPropagation();
+  if(!pendingPromo) return;
   document.getElementById('promo-modal').classList.remove('show');
-  const promoColor=pendingPromo.promoColor||'w';
-  const m={...pendingPromo,promo:type}; pendingPromo=null;
-  executeMove(m,promoColor);
+  const promoColor = pendingPromo.promoColor || 'w';
+  const m = {...pendingPromo, promo:type};
+  pendingPromo = null;
+
+  // Ensure the pawn is still on from-square (it hasn't moved yet)
+  // Re-seat piece if board[m.from] is null (edge case)
+  if(!board[m.from] && m.savedPiece){
+    board[m.from] = m.savedPiece;
+  }
+
+  executeMove(m, promoColor);
 }
 
 function undoMove(){
